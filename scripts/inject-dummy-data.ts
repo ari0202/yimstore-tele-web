@@ -1,0 +1,74 @@
+import { createClient } from '@supabase/supabase-js';
+import * as dotenv from 'dotenv';
+dotenv.config();
+
+// 1. HARDCODED FAIL-SAFE (Operational Security Review)
+if (process.env.NODE_ENV !== 'development') {
+    console.error('🚨 ABORT: Dummy data injection can only run in development environment.');
+    process.exit(1);
+}
+
+if (!process.argv.includes('--confirm-destroy-real-data')) {
+    console.error('🚨 ABORT: Missing --confirm-destroy-real-data flag. This prevents accidental execution.');
+    process.exit(1);
+}
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+async function inject() {
+    console.log('🚀 Initiating Dummy Data Injection...');
+
+    // 2. Clear Existing Test Data (Optional cleanup if needed in dev)
+    // Note: Use careful DELETE here if required, or just rely on appending.
+    // For safety, we will just append because we don't want to accidentally truncate even if bypass works.
+    
+    // 3. Inject Categories
+    const categories = [
+        { name: 'Streaming', slug: 'streaming' },
+        { name: 'Design', slug: 'design' },
+        { name: 'VPN', slug: 'vpn' }
+    ];
+
+    const { data: catData, error: catErr } = await supabase.from('categories').insert(categories).select();
+    if (catErr) throw catErr;
+    console.log(`✅ Injected ${catData.length} Categories`);
+
+    const streamCat = catData.find((c: any) => c.slug === 'streaming');
+    const designCat = catData.find((c: any) => c.slug === 'design');
+
+    // 4. Inject Products
+    const products = [
+        { category_id: streamCat.id, name: 'Netflix Premium 1 Bulan', price: 35000, warranty_days: 30, max_claim_limit: 2, description: 'Akun premium 4K' },
+        { category_id: streamCat.id, name: 'Spotify Premium 1 Bulan', price: 15000, warranty_days: 25, max_claim_limit: 1, description: 'No ads, offline' },
+        { category_id: designCat.id, name: 'Canva Pro Invite', price: 10000, warranty_days: 30, max_claim_limit: 1, description: 'Invite via email' }
+    ];
+
+    const { data: prodData, error: prodErr } = await supabase.from('products').insert(products).select();
+    if (prodErr) throw prodErr;
+    console.log(`✅ Injected ${prodData.length} Products`);
+
+    // 5. Inject Inventory
+    const netflix = prodData.find((p: any) => p.name.includes('Netflix'));
+    const inventory = [];
+    
+    // 10 Available
+    for(let i=0; i<10; i++) {
+        inventory.push({ product_id: netflix.id, credential_data: `netflix_user${i}@mail.com:pass123`, status: 'Available' });
+    }
+    // 2 Used
+    inventory.push({ product_id: netflix.id, credential_data: `netflix_used1@mail.com:pass123`, status: 'Used' });
+    inventory.push({ product_id: netflix.id, credential_data: `netflix_used2@mail.com:pass123`, status: 'Used' });
+    // 1 Hold
+    inventory.push({ product_id: netflix.id, credential_data: `netflix_hold@mail.com:pass123`, status: 'Hold', reserved_until: new Date(Date.now() + 3600000).toISOString() });
+
+    const { data: invData, error: invErr } = await supabase.from('inventory').insert(inventory).select();
+    if (invErr) throw invErr;
+    console.log(`✅ Injected ${invData.length} Inventory Items`);
+
+    console.log('🎉 Dummy Data Injection Complete!');
+    process.exit(0);
+}
+
+inject().catch(console.error);

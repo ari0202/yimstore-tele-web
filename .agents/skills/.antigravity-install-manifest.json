@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-06-12T14:28:01.653Z",
+  "entries": [
+    "astro",
+    "audit-skills",
+    "bumblebee",
+    "container-security-hardening",
+    "design-taste-frontend",
+    "docker-expert",
+    "docs",
+    "frontend-api-integration-patterns",
+    "full-output-enforcement",
+    "github-actions-advanced",
+    "gpt-taste",
+    "high-end-visual-design",
+    "hono",
+    "industrial-brutalist-ui",
+    "kubestellar-console",
+    "minimalist-ui",
+    "mise-configurator",
+    "production-audit",
+    "redesign-existing-projects",
+    "security/aws-compliance-checker",
+    "security/aws-iam-best-practices",
+    "security/aws-secrets-rotation",
+    "security/aws-security-audit",
+    "skill-audit",
+    "stitch-design-taste",
+    "sveltekit",
+    "vibecode-production-qa-validator"
+  ]
+}

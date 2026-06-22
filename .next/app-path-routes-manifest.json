@@ -1,0 +1,19 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/admin/(dashboard)/categories/page": "/admin/categories",
+  "/admin/(dashboard)/inventory/page": "/admin/inventory",
+  "/admin/(dashboard)/orders/page": "/admin/orders",
+  "/admin/(dashboard)/page": "/admin",
+  "/admin/(dashboard)/products/page": "/admin/products",
+  "/admin/(dashboard)/settings/page": "/admin/settings",
+  "/admin/login/page": "/admin/login",
+  "/api/admin/inventory/bulk-upload/route": "/api/admin/inventory/bulk-upload",
+  "/api/checkout/route": "/api/checkout",
+  "/api/claim/route": "/api/claim",
+  "/api/cron/process-outbox/route": "/api/cron/process-outbox",
+  "/api/webhook/pakasir/route": "/api/webhook/pakasir",
+  "/api/webhook/telegram/route": "/api/webhook/telegram",
+  "/order/[id]/page": "/order/[id]",
+  "/page": "/"
+}

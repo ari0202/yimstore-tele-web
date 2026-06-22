@@ -1,0 +1,65 @@
+{
+  "node": {
+    "0085a1baed74bf637b36cde59d19e1ee6cc7c0581f": {
+      "workers": {
+        "app/admin/(dashboard)/products/page": {
+          "moduleId": 55283,
+          "async": false,
+          "exportedName": "$$RSC_SERVER_ACTION_0",
+          "filename": "src/lib/auth.ts"
+        }
+      },
+      "exportedName": "$$RSC_SERVER_ACTION_0",
+      "filename": "src/lib/auth.ts"
+    },
+    "40764806f834e833899f108046875b5f14f6a289d4": {
+      "workers": {
+        "app/admin/(dashboard)/products/page": {
+          "moduleId": 55283,
+          "async": false,
+          "exportedName": "$$RSC_SERVER_ACTION_1",
+          "filename": "src/app/admin/(dashboard)/products/page.tsx"
+        }
+      },
+      "exportedName": "$$RSC_SERVER_ACTION_1",
+      "filename": "src/app/admin/(dashboard)/products/page.tsx"
+    },
+    "407e2b79e8b373b8edabb8c7441551be5c2c3c357f": {
+      "workers": {
+        "app/admin/(dashboard)/products/page": {
+          "moduleId": 55283,
+          "async": false,
+          "exportedName": "$$RSC_SERVER_ACTION_2",
+          "filename": "src/app/admin/(dashboard)/products/page.tsx"
+        }
+      },
+      "exportedName": "$$RSC_SERVER_ACTION_2",
+      "filename": "src/app/admin/(dashboard)/products/page.tsx"
+    },
+    "409da4bcc2c94baa7fea8849fb7882ddfc4f523637": {
+      "workers": {
+        "app/admin/(dashboard)/products/page": {
+          "moduleId": 55283,
+          "async": false,
+          "exportedName": "$$RSC_SERVER_ACTION_3",
+          "filename": "src/app/admin/(dashboard)/products/page.tsx"
+        }
+      },
+      "exportedName": "$$RSC_SERVER_ACTION_3",
+      "filename": "src/app/admin/(dashboard)/products/page.tsx"
+    },
+    "40dc0b110047816297b8d3b043b44b1f8f22509608": {
+      "workers": {
+        "app/admin/(dashboard)/products/page": {
+          "moduleId": 55283,
+          "async": false,
+          "exportedName": "$$RSC_SERVER_ACTION_0",
+          "filename": "src/app/admin/(dashboard)/products/page.tsx"
+        }
+      },
+      "exportedName": "$$RSC_SERVER_ACTION_0",
+      "filename": "src/app/admin/(dashboard)/products/page.tsx"
+    }
+  },
+  "edge": {}
+}

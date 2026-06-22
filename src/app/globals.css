@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+@theme {
+  /* Minimalist UI Base Variables */
+  --color-surface-bg: #f9fafb; /* gray-50 */
+  --color-surface-card: #ffffff; 
+  --color-surface-core: #ffffff;
+  
+  --color-text-primary: #111827; /* gray-900 */
+  --color-text-secondary: #4b5563; /* gray-600 */
+  --color-text-muted: #9ca3af; /* gray-400 */
+  
+  --color-action-primary: #2563eb; /* blue-600 */
+  --color-action-hover: #1d4ed8; /* blue-700 */
+  
+  --color-border-soft: #f3f4f6; /* gray-100 */
+}
+
+/* Base Body Styling */
+:root {
+  color-scheme: light;
+  --background: var(--color-surface-bg);
+  --foreground: var(--color-text-primary);
+}
+
+body {
+  background-color: var(--color-surface-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-inter), sans-serif;
+}
+
+/* Premium Noise Grain Overlay */
+.noise-bg {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}

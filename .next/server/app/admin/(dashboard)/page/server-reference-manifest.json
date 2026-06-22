@@ -1,0 +1,17 @@
+{
+  "node": {
+    "0085a1baed74bf637b36cde59d19e1ee6cc7c0581f": {
+      "workers": {
+        "app/admin/(dashboard)/page": {
+          "moduleId": 14169,
+          "async": false,
+          "exportedName": "$$RSC_SERVER_ACTION_0",
+          "filename": "src/lib/auth.ts"
+        }
+      },
+      "exportedName": "$$RSC_SERVER_ACTION_0",
+      "filename": "src/lib/auth.ts"
+    }
+  },
+  "edge": {}
+}

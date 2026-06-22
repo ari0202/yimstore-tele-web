@@ -1,0 +1,19 @@
+{
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/admin/(dashboard)/categories/page": "app/admin/(dashboard)/categories/page.js",
+  "/admin/(dashboard)/inventory/page": "app/admin/(dashboard)/inventory/page.js",
+  "/admin/(dashboard)/orders/page": "app/admin/(dashboard)/orders/page.js",
+  "/admin/(dashboard)/page": "app/admin/(dashboard)/page.js",
+  "/admin/(dashboard)/products/page": "app/admin/(dashboard)/products/page.js",
+  "/admin/(dashboard)/settings/page": "app/admin/(dashboard)/settings/page.js",
+  "/admin/login/page": "app/admin/login/page.js",
+  "/api/admin/inventory/bulk-upload/route": "app/api/admin/inventory/bulk-upload/route.js",
+  "/api/checkout/route": "app/api/checkout/route.js",
+  "/api/claim/route": "app/api/claim/route.js",
+  "/api/cron/process-outbox/route": "app/api/cron/process-outbox/route.js",
+  "/api/webhook/pakasir/route": "app/api/webhook/pakasir/route.js",
+  "/api/webhook/telegram/route": "app/api/webhook/telegram/route.js",
+  "/order/[id]/page": "app/order/[id]/page.js",
+  "/page": "app/page.js"
+}
