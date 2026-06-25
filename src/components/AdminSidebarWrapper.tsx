@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LogOut, LayoutDashboard, Package, Grid, Settings, Menu, X, PlusSquare } from 'lucide-react';
+import { LogOut, LayoutDashboard, Package, Grid, Settings, Menu, X, PlusSquare, ShoppingCart } from 'lucide-react';
 import { handleLogout } from '@/app/admin/actions';
 
 export default function AdminSidebarWrapper({ children }: { children: React.ReactNode }) {
@@ -16,6 +16,7 @@ export default function AdminSidebarWrapper({ children }: { children: React.Reac
   else if (pathname.includes('/products')) title = 'Products';
   else if (pathname.includes('/inventory/available')) title = 'Available Inventory';
   else if (pathname.includes('/inventory')) title = 'Bulk Upload';
+  else if (pathname.includes('/orders')) title = 'Manajemen Pesanan';
   else if (pathname.includes('/settings')) title = 'Settings';
 
   return (
@@ -43,6 +44,9 @@ export default function AdminSidebarWrapper({ children }: { children: React.Reac
           </Link>
           <Link href="/admin/categories" onClick={() => setIsOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${pathname.includes('/categories') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`}>
             <Grid size={20} /> Categories
+          </Link>
+          <Link href="/admin/orders" onClick={() => setIsOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${pathname.includes('/orders') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`}>
+            <ShoppingCart size={20} /> Pesanan
           </Link>
           <Link href="/admin/products" onClick={() => setIsOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${pathname === '/admin/products' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`}>
             <Package size={20} /> Products

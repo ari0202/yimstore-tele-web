@@ -27,6 +27,9 @@ export default async function OrdersPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Manajemen Pesanan</h1>
+        <a href="/admin/orders/add-manual" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm">
+          + Tambah Manual
+        </a>
       </div>
 
       <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
