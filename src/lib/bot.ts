@@ -10,9 +10,9 @@ if (!process.env.TELEGRAM_BOT_TOKEN) {
 export const bot = new Bot(process.env.TELEGRAM_BOT_TOKEN);
 
 export const mainKeyboard = new Keyboard()
-  .text("List Produk").text("Saldo : Rp 0").row()
-  .text("📄 Riwayat Transaksi").row()
-  .text("✨ Best Seller").text("How To Order ❓")
+  .text("🛒 List Produk").text("💰 Saldo : Rp 0").row()
+  .text("📄 Riwayat Transaksi").text("💬 Kontak Admin").row()
+  .text("✨ Best Seller").text("❓ How To Order")
   .resized();
 
 // MOCK BYPASS FOR E2E TESTING
@@ -256,7 +256,10 @@ bot.command('cek_pesanan', async (ctx) => {
   await showOrderList(ctx, chatId);
 });
 
-bot.hears('List Produk', (ctx) => renderKatalog(ctx, false));
+bot.hears('🛒 List Produk', (ctx) => renderKatalog(ctx, false));
+bot.hears('💬 Kontak Admin', (ctx) => {
+  return ctx.reply('Silakan hubungi admin kami secara langsung melalui tautan berikut:\n\n👉 https://t.me/YimDigital', { parse_mode: 'Markdown' });
+});
 bot.hears('📄 Riwayat Transaksi', async (ctx) => {
   const chatId = ctx.chat.id.toString();
   await showOrderList(ctx, chatId);
@@ -513,13 +516,7 @@ bot.command('start', async (ctx) => {
   const chatId = ctx.chat.id.toString();
 
   if (!payload || !payload.startsWith('token_')) {
-    // 0. Send an invisible dummy message (using Braille empty char) to safely inject Reply Keyboard
-    const dummy = await ctx.reply('\u2800', { reply_markup: mainKeyboard }).catch(() => null);
-    if (dummy) {
-      ctx.api.deleteMessage(ctx.chat.id, dummy.message_id).catch(() => {});
-    }
-
-    // 1. Initial 20% frame (WITHOUT Reply Keyboard, so it CAN be edited)
+    // 1. Initial 20% frame
     const msg = await ctx.reply('🔄 Menyiapkan sistem & memuat statistik...\n[■■□□□□□□□□] 20%');
     
     // Start fetching stats in background
@@ -549,14 +546,9 @@ bot.command('start', async (ctx) => {
     // 3. Send the Welcome Message as a NEW message
     const welcomeText = `✨ *Selamat Datang di YimStore!* ✨\n\nPusat layanan digital dan akun premium terpercaya. Kami menyediakan berbagai macam kebutuhan digital dengan proses yang instan dan otomatis 24/7.\n\n📊 *Statistik Bot:*\n👥 Pengguna Aktif: ${userCount || 0} Pengguna\n🛍️ Transaksi Berhasil: ${orderCount || 0} Pesanan\n\nSilakan pilih menu di bawah ini untuk memulai:`;
     
-    const welcomeInline = new InlineKeyboard()
-      .text('🛒 List Produk', 'katalog_main').row()
-      .text('📄 Riwayat Transaksi', 'cek_pesanan_list').row()
-      .url('💬 Kontak Admin', 'https://t.me/YimDigital');
-
     await ctx.reply(welcomeText, { 
       parse_mode: 'Markdown', 
-      reply_markup: welcomeInline 
+      reply_markup: mainKeyboard 
     });
 
     // 4. Delete the loading message
