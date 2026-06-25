@@ -4,6 +4,8 @@ import { createPakasirTransaction } from '@/lib/pakasir';
 import AutoRefresh from './AutoRefresh';
 import PaymentSection from './PaymentSection';
 import CopyButton from './CopyButton';
+import CopyPageLinkButton from './CopyPageLinkButton';
+import ClaimButton from './ClaimButton';
 
 export default async function OrderDashboard({ params, searchParams }: { params: { id: string }, searchParams: { token?: string } }) {
   // Await cookies and params as required in modern Next.js
@@ -178,13 +180,15 @@ export default async function OrderDashboard({ params, searchParams }: { params:
                     {/* Credentials Box */}
                     <div className="bg-gray-900 rounded-xl p-5 relative group mt-4">
                       {item.inventory?.credential_data && (
-                        <CopyButton text={JSON.stringify(item.inventory.credential_data, null, 2)} />
+                        <CopyButton text={typeof item.inventory.credential_data === 'string' ? item.inventory.credential_data : JSON.stringify(item.inventory.credential_data, null, 2)} />
                       )}
                       <div className="text-xs text-gray-400 font-mono mb-2">
                         Kredensial Aktif:
                       </div>
                       <pre className="text-green-400 font-mono text-sm whitespace-pre-wrap">
-                        {item.inventory?.credential_data ? JSON.stringify(item.inventory.credential_data, null, 2) : 'Sedang diproses...'}
+                        {item.inventory?.credential_data 
+                          ? (typeof item.inventory.credential_data === 'string' ? item.inventory.credential_data : JSON.stringify(item.inventory.credential_data, null, 2))
+                          : 'Sedang diproses...'}
                       </pre>
                     </div>
 
@@ -214,23 +218,12 @@ export default async function OrderDashboard({ params, searchParams }: { params:
                         className="w-full py-3.5 rounded-xl font-bold transition-all duration-200 flex justify-center items-center gap-2 bg-[var(--color-action-primary)] hover:bg-[var(--color-action-hover)] text-white shadow-md hover:shadow-lg hover:-translate-y-0.5"
                       >
                         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.223-.548.223l.188-2.85 5.18-4.686c.223-.195-.054-.285-.346-.09l-6.4 4.024-2.76-.86c-.6-.185-.61-.6.125-.89l10.736-4.138c.498-.184.93.116.805.882z"/></svg>
-                        Buka Telegram Bot
+                        Tautkan Pesanan ke Telegram
                       </a>
+
+                      <CopyPageLinkButton />
                       
-                      <button 
-                        disabled={!canClaim}
-                        className={`w-full py-3.5 rounded-xl font-semibold transition-all duration-200 flex justify-center items-center gap-2
-                          ${canClaim 
-                            ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md hover:shadow-lg hover:-translate-y-0.5' 
-                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
-                        // TODO: Hook this to client-side fetch call
-                        data-item-id={item.id}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-                        </svg>
-                        {canClaim ? 'Klaim Garansi Otomatis' : 'Garansi Tidak Tersedia'}
-                      </button>
+                      <ClaimButton canClaim={canClaim} itemId={item.id} token={token} />
                       {!isWarrantyActive && (
                         <p className="text-xs text-center text-red-500 mt-2">Masa garansi telah kedaluwarsa.</p>
                       )}

@@ -12,7 +12,7 @@ export const bot = new Bot(process.env.TELEGRAM_BOT_TOKEN);
 export const mainKeyboard = new Keyboard()
   .text("🛒 List Produk").text("💰 Saldo : Rp 0").row()
   .text("📄 Riwayat Transaksi").text("💬 Kontak Admin").row()
-  .text("✨ Best Seller").text("❓ How To Order")
+  .text("✨ Best Seller").text("❓ Bantuan")
   .resized();
 
 // MOCK BYPASS FOR E2E TESTING
@@ -216,12 +216,18 @@ async function showOrderList(ctx: any, chatId: string) {
     return ctx.reply('Anda belum memiliki pesanan yang terhubung dengan akun Telegram ini.');
   }
 
-  const { data: orders } = await supabaseAdmin
+  const { data: allOrders } = await supabaseAdmin
     .from('orders')
     .select('id, access_token, created_at, payment_status, delivery_status, total_amount, order_items(products(name, warranty_days), current_claim_count, max_claim_limit, warranty_end_date)')
     .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(5);
+    .order('created_at', { ascending: false });
+
+  const now = new Date();
+  const orders = allOrders?.filter((order: any) => {
+    const orderItem = order.order_items?.[0];
+    if (!orderItem || !orderItem.warranty_end_date) return false;
+    return new Date(orderItem.warranty_end_date) > now;
+  }) || [];
 
   if (!orders || orders.length === 0) {
     if (ctx.callbackQuery) {
@@ -258,7 +264,8 @@ bot.command('cek_pesanan', async (ctx) => {
 
 bot.hears('🛒 List Produk', (ctx) => renderKatalog(ctx, false));
 bot.hears('💬 Kontak Admin', (ctx) => {
-  return ctx.reply('Silakan hubungi admin kami secara langsung melalui tautan berikut:\n\n👉 https://t.me/YimDigital', { parse_mode: 'Markdown' });
+  const keyboard = new InlineKeyboard().url('💬 Hubungi Admin', 'https://t.me/YimDigital');
+  return ctx.reply('Silakan klik tombol di bawah ini untuk menghubungi admin kami:', { reply_markup: keyboard });
 });
 bot.hears('📄 Riwayat Transaksi', async (ctx) => {
   const chatId = ctx.chat.id.toString();
@@ -266,7 +273,26 @@ bot.hears('📄 Riwayat Transaksi', async (ctx) => {
 });
 bot.hears('Saldo : Rp 0', (ctx) => ctx.reply('Fitur Saldo akan segera hadir.'));
 bot.hears('✨ Best Seller', (ctx) => ctx.reply('Fitur Best Seller akan segera hadir.'));
-bot.hears('How To Order ❓', (ctx) => ctx.reply('Cara Order:\n1. Klik "List Produk"\n2. Pilih produk dan variasi yang diinginkan\n3. Lakukan pembayaran via QRIS/VA\n4. Akun akan langsung dikirimkan ke chat ini secara instan.'));
+bot.hears('❓ Bantuan', (ctx) => {
+  const keyboard = new InlineKeyboard()
+    .text('🛒 Cara Order', 'help_how_to_order').row()
+    .text('🛡️ Cara Claim Garansi', 'help_claim_warranty').row()
+    .url('💬 Hubungi Admin', 'https://t.me/YimDigital');
+  
+  return ctx.reply('Pusat Bantuan YimStore.\nSilakan pilih topik bantuan yang Anda butuhkan di bawah ini:', { reply_markup: keyboard });
+});
+
+bot.callbackQuery('help_how_to_order', async (ctx) => {
+  const text = 'Cara Order:\n1. Klik "List Produk"\n2. Pilih produk dan variasi yang diinginkan\n3. Lakukan pembayaran via QRIS/VA\n4. Akun akan langsung dikirimkan ke chat ini secara instan.';
+  await ctx.reply(text);
+  ctx.answerCallbackQuery();
+});
+
+bot.callbackQuery('help_claim_warranty', async (ctx) => {
+  const text = 'Cara Claim Garansi:\n1. Klik "Riwayat Transaksi"\n2. Pilih pesanan yang ingin Anda klaim\n3. Pastikan pesanan masih dalam masa garansi aktif\n4. Klik tombol "Klaim Garansi" dan akun pengganti akan langsung dikirimkan kepada Anda.';
+  await ctx.reply(text);
+  ctx.answerCallbackQuery();
+});
 
 bot.callbackQuery('cek_pesanan_list', async (ctx) => {
   const chatId = ctx.chat?.id?.toString() || '';
@@ -336,7 +362,7 @@ bot.callbackQuery(/^view_order_(.+)$/, async (ctx) => {
 
 bot.callbackQuery(/^claim_(.+)$/, async (ctx) => {
   const orderItemId = ctx.match[1];
-  const chatId = ctx.chat?.id?.toString() || '';
+  const chatId = ctx.from?.id?.toString() || ctx.chat?.id?.toString() || '';
 
   // 1. Verify ownership
   const { data: orderItemCheck } = await supabaseAdmin
@@ -378,7 +404,7 @@ bot.callbackQuery(/^claim_(.+)$/, async (ctx) => {
 // 4. Native Checkout Logic (Callback Query)
 bot.callbackQuery(/^buy_(.+)$/, async (ctx) => {
   const productId = ctx.match[1];
-  const chatId = ctx.chat?.id.toString();
+  const chatId = ctx.from?.id?.toString() || ctx.chat?.id?.toString() || '';
 
   try {
     // A. Get Product
@@ -522,7 +548,7 @@ bot.command('start', async (ctx) => {
     // Start fetching stats in background
     const statsPromise = Promise.all([
       supabaseAdmin.from('users').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('orders').select('*', { count: 'exact', head: true }).in('payment_status', ['paid', 'completed'])
+      supabaseAdmin.from('orders').select('*', { count: 'exact', head: true }).in('payment_status', ['paid', 'PAID', 'completed', 'COMPLETED', 'success', 'SUCCESS'])
     ]);
 
     // Frame 2: 50%
