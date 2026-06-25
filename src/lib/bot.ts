@@ -23,6 +23,61 @@ if (process.env.APP_ENV === 'test') {
   };
 }
 
+// ==========================================
+// Bot Template Engine & State
+// ==========================================
+export const adminEditStates = new Map<number, string>();
+
+export function parseTelegramToHtml(text: string, entities: any[]): string {
+  if (!entities || entities.length === 0) return text;
+  let html = text;
+  // Sort entities by offset descending so modifying string doesn't mess up earlier offsets
+  const sorted = [...entities].sort((a, b) => b.offset - a.offset);
+  for (const ent of sorted) {
+    const { offset, length, type, custom_emoji_id, url } = ent;
+    const content = html.substring(offset, offset + length);
+    let replaced = content;
+    
+    if (type === 'custom_emoji') {
+      replaced = `<tg-emoji emoji-id="${custom_emoji_id}">${content}</tg-emoji>`;
+    } else if (type === 'bold') {
+      replaced = `<b>${content}</b>`;
+    } else if (type === 'italic') {
+      replaced = `<i>${content}</i>`;
+    } else if (type === 'underline') {
+      replaced = `<u>${content}</u>`;
+    } else if (type === 'strikethrough') {
+      replaced = `<s>${content}</s>`;
+    } else if (type === 'code') {
+      replaced = `<code>${content}</code>`;
+    } else if (type === 'pre') {
+      replaced = `<pre>${content}</pre>`;
+    } else if (type === 'text_link') {
+      replaced = `<a href="${url}">${content}</a>`;
+    }
+    
+    html = html.substring(0, offset) + replaced + html.substring(offset + length);
+  }
+  return html;
+}
+
+export async function getTemplate(key: string, variables: Record<string, string | number> = {}): Promise<string | null> {
+  const { data } = await supabaseAdmin
+    .from('bot_templates')
+    .select('content_html')
+    .eq('key', key)
+    .single();
+    
+  if (!data || !data.content_html) return null;
+  
+  let html = data.content_html;
+  for (const [vKey, vValue] of Object.entries(variables)) {
+    html = html.replace(new RegExp(`\\{\\{${vKey}\\}\\}`, 'g'), String(vValue));
+  }
+  return html;
+}
+
+
 // 1. Kill-Switch Middleware (Bot-Side Enforcement)
 bot.use(async (ctx, next) => {
   const { data: settings } = await supabaseAdmin
@@ -182,25 +237,24 @@ bot.callbackQuery(/^detail_(.+)$/, async (ctx) => {
   }
   const estimatedTotal = product.base_price + estimatedFee;
 
-  message += `KONFIRMASI PESANAN\n=========================\n`;
-  message += `Produk: ${product.name}\n`;
-  message += `Harga: Rp ${product.base_price.toLocaleString('id-ID')} / item\n`;
-  message += `Stok Tersedia: ${availableStock}\n`;
-  message += `-------------------------\n`;
-  message += `Jumlah Pesanan: 1\n`;
-  message += `Fee Payment: Rp ${estimatedFee.toLocaleString('id-ID')} (QRIS)\n`;
-  message += `Total Dibayar: Rp ${estimatedTotal.toLocaleString('id-ID')}\n`;
-  message += `=========================\n`;
-  message += `Klik ✅ Konfirmasi untuk menahan stok dan melakukan pembayaran.`;
+  const tpl = await getTemplate('order_confirmation', {
+    product_name: product.name,
+    base_price: product.base_price.toLocaleString('id-ID'),
+    available_stock: availableStock,
+    fee_payment: estimatedFee.toLocaleString('id-ID'),
+    total_payment: estimatedTotal.toLocaleString('id-ID')
+  });
+
+  const finalMessage = tpl ? message + tpl : message + `KONFIRMASI PESANAN\n=========================\nProduk: ${product.name}\nHarga: Rp ${product.base_price.toLocaleString('id-ID')} / item\nStok Tersedia: ${availableStock}\n-------------------------\nJumlah Pesanan: 1\nFee Payment: Rp ${estimatedFee.toLocaleString('id-ID')} (QRIS)\nTotal Dibayar: Rp ${estimatedTotal.toLocaleString('id-ID')}\n=========================\nKlik ✅ Konfirmasi untuk menahan stok dan melakukan pembayaran.`;
   
   const keyboard = new InlineKeyboard()
     .text('⬅️ Kembali', `cat_${product.category_id}`)
     .text('✅ Konfirmasi', `buy_${product.id}`);
     
   try {
-    await ctx.editMessageText(message, { reply_markup: keyboard });
+    await ctx.editMessageText(finalMessage, { reply_markup: keyboard, parse_mode: tpl ? 'HTML' : undefined });
   } catch (e) {
-    await ctx.reply(message, { reply_markup: keyboard });
+    await ctx.reply(finalMessage, { reply_markup: keyboard, parse_mode: tpl ? 'HTML' : undefined });
   }
   await ctx.answerCallbackQuery();
 });
@@ -256,6 +310,72 @@ async function showOrderList(ctx: any, chatId: string) {
     return ctx.reply(text, { reply_markup: keyboard });
   }
 }
+
+// ==========================================
+// Admin Template Edit Mode
+// ==========================================
+bot.command('admin_templates', async (ctx) => {
+  const adminIds = (process.env.TELEGRAM_ADMIN_CHAT_ID || '').split(',');
+  const chatId = ctx.chat.id.toString();
+  if (!adminIds.includes(chatId)) return;
+
+  const { data: templates } = await supabaseAdmin.from('bot_templates').select('key, name');
+  if (!templates || templates.length === 0) return ctx.reply('Belum ada template.');
+
+  let text = '⚙️ *Admin Templates Menu*\nPilih template untuk diedit:\n\n';
+  const keyboard = new InlineKeyboard();
+  
+  templates.forEach((tpl: any) => {
+    keyboard.text(`📝 ${tpl.name}`, `edit_tpl_${tpl.key}`).row();
+  });
+
+  await ctx.reply(text, { parse_mode: 'Markdown', reply_markup: keyboard });
+});
+
+bot.callbackQuery(/^edit_tpl_(.+)$/, async (ctx) => {
+  const adminIds = (process.env.TELEGRAM_ADMIN_CHAT_ID || '').split(',');
+  const chatIdStr = ctx.from?.id?.toString() || ctx.chat?.id?.toString() || '';
+  if (!adminIds.includes(chatIdStr)) return ctx.answerCallbackQuery({ text: 'Akses ditolak.' });
+
+  const key = ctx.match[1];
+  const { data: tpl } = await supabaseAdmin.from('bot_templates').select('*').eq('key', key).single();
+  
+  if (!tpl) return ctx.answerCallbackQuery({ text: 'Template tidak ditemukan.', show_alert: true });
+
+  const chatId = parseInt(chatIdStr);
+  adminEditStates.set(chatId, key);
+
+  let instructions = `Anda sedang mengedit template: *${tpl.name}*\n\n`;
+  instructions += `_Variabel yang didukung:_ ${tpl.variables_hint || '-'}\n\n`;
+  instructions += `Silakan copy teks pesan di bawah ini, sisipkan Emoji Premium Anda, lalu kirim kembali pesan tersebut ke bot ini.`;
+
+  await ctx.reply(instructions, { parse_mode: 'Markdown' });
+  await ctx.reply(tpl.content_html, { parse_mode: 'HTML' });
+  
+  ctx.answerCallbackQuery();
+});
+
+bot.on('message:text', async (ctx, next) => {
+  const chatId = ctx.from?.id;
+  if (!chatId || !adminEditStates.has(chatId)) {
+    return next();
+  }
+
+  const templateKey = adminEditStates.get(chatId)!;
+  const htmlContent = parseTelegramToHtml(ctx.message.text, ctx.message.entities || []);
+
+  const { error } = await supabaseAdmin
+    .from('bot_templates')
+    .update({ content_html: htmlContent, updated_at: new Date().toISOString() })
+    .eq('key', templateKey);
+
+  if (error) {
+    await ctx.reply('❌ Gagal menyimpan template.');
+  } else {
+    adminEditStates.delete(chatId);
+    await ctx.reply('✅ Template berhasil diperbarui dan disimpan!');
+  }
+});
 
 bot.command('cek_pesanan', async (ctx) => {
   const chatId = ctx.chat.id.toString();
@@ -570,10 +690,15 @@ bot.command('start', async (ctx) => {
     await new Promise(r => setTimeout(r, 500));
 
     // 3. Send the Welcome Message as a NEW message
-    const welcomeText = `✨ *Selamat Datang di YimStore!* ✨\n\nPusat layanan digital dan akun premium terpercaya. Kami menyediakan berbagai macam kebutuhan digital dengan proses yang instan dan otomatis 24/7.\n\n📊 *Statistik Bot:*\n👥 Pengguna Aktif: ${userCount || 0} Pengguna\n🛍️ Transaksi Berhasil: ${orderCount || 0} Pesanan\n\nSilakan pilih menu di bawah ini untuk memulai:`;
+    const tpl = await getTemplate('welcome_message', {
+      user_count: userCount || 0,
+      order_count: orderCount || 0
+    });
+    
+    const welcomeText = tpl || `✨ *Selamat Datang di YimStore!* ✨\n\nPusat layanan digital dan akun premium terpercaya. Kami menyediakan berbagai macam kebutuhan digital dengan proses yang instan dan otomatis 24/7.\n\n📊 *Statistik Bot:*\n👥 Pengguna Aktif: ${userCount || 0} Pengguna\n🛍️ Transaksi Berhasil: ${orderCount || 0} Pesanan\n\nSilakan pilih menu di bawah ini untuk memulai:`;
     
     await ctx.reply(welcomeText, { 
-      parse_mode: 'Markdown', 
+      parse_mode: tpl ? 'HTML' : 'Markdown', 
       reply_markup: mainKeyboard 
     });
 
