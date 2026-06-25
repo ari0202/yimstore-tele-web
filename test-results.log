@@ -1,0 +1,535 @@
+1: starting server using command "npm run start"
+and when url "[ 'http://localhost:3000' ]" is responding with HTTP status code 200
+running tests using command "npx cypress run --spec cypress/e2e/prd-v1-exhaustive-verification.cy.ts"
+
+
+> yimstore-tele-web@1.0.0 start
+> next start
+
+⨯ Failed to start server
+Error: listen EADDRINUSE: address already in use :::3000
+    at <unknown> (Error: listen EADDRINUSE: address already in use :::3000)
+    at new Promise (<anonymous>) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 3000
+}
+Warning: The allowCypressEnv configuration option is enabled. This allows any browser code to read values from Cypress.env(). This is insecure and will be removed in a future major version.
+
+1. Replace Cypress.env() calls with cy.env() (for sensitive values) or Cypress.expose() (for public configuration)
+2. Set allowCypressEnv: false in your Cypress configuration to disable Cypress.env()
+
+Learn more: https://on.cypress.io/cypress-env-migration
+
+
+================================================================================
+
+  (Run Starting)
+
+  ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ Cypress:        15.17.0                                                                        │
+  │ Browser:        Electron 138 (headless)                                                        │
+  │ Node Version:   v22.22.3 (/root/.nvm/versions/node/v22.22.3/bin/node)                          │
+  │ Specs:          1 found (prd-v1-exhaustive-verification.cy.ts)                                 │
+  │ Searched:       cypress/e2e/prd-v1-exhaustive-verification.cy.ts                               │
+  └────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+                                                                                                    
+  Running:  prd-v1-exhaustive-verification.cy.ts                                            (1 of 1)
+
+
+  PRD v1 Full Exhaustive Verification Suite
+    1. Katalog Produk & Responsiveness
+      1) Should display products on desktop correctly
+      2) Should display products on mobile correctly
+    2. Checkout & Webhook Idempotency
+      3) Should checkout successfully and block duplicate webhook (Idempotency)
+    3. Klaim Garansi Otomatis (Happy Path)
+      4) Should allow successful claim and fetch new credentials
+    4. Attack Vector - Cooldown Bypass
+      5) Should reject second claim if cooldown is active
+    5. Attack Vector - Telegram IDOR
+      6) Should block claim if telegram user id does not own the order
+    7. Attack Vector - Race Condition
+      7) Should only allow 1 claim to succeed during concurrent requests
+    8. Admin Cooldown Override
+      8) Should allow admin to bypass cooldown for a specific order item
+    6. Maintenance Mode (Global Kill-Switch)
+      ✓ Should reject checkout and claims when maintenance mode is active (43ms)
+
+
+  1 passing (14s)
+  8 failing
+
+  1) PRD v1 Full Exhaustive Verification Suite
+       1. Katalog Produk & Responsiveness
+         Should display products on desktop correctly:
+     AssertionError: Timed out retrying after 4000ms: Expected to find content: 'Yim Digital' but never did.
+      at Context.eval (webpack://yimstore-tele-web/./cypress/e2e/prd-v1-exhaustive-verification.cy.ts:22:33)
+
+  2) PRD v1 Full Exhaustive Verification Suite
+       1. Katalog Produk & Responsiveness
+         Should display products on mobile correctly:
+     AssertionError: Timed out retrying after 4000ms: Expected to find content: 'Yim Digital' but never did.
+      at Context.eval (webpack://yimstore-tele-web/./cypress/e2e/prd-v1-exhaustive-verification.cy.ts:29:33)
+
+  3) PRD v1 Full Exhaustive Verification Suite
+       2. Checkout & Webhook Idempotency
+         Should checkout successfully and block duplicate webhook (Idempotency):
+     CypressError: `cy.request()` failed on:
+
+http://localhost:3000/api/checkout
+
+The response we received from your web server was:
+
+  > 500: Internal Server Error
+
+This was considered a failure because the status code was not `2xx` or `3xx`.
+
+If you do not want status codes to cause failures pass the option: `failOnStatusCode: false`
+
+-----------------------------------------------------------
+
+The request we sent was:
+
+Method: POST
+URL: http://localhost:3000/api/checkout
+Headers: {
+  "Connection": "keep-alive",
+  "x-e2e-bypass": "e2e-bypass-2024",
+  "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Cypress/15.17.0 Chrome/138.0.7204.251 Electron/37.6.0 Safari/537.36",
+  "accept": "*/*",
+  "content-type": "application/x-www-form-urlencoded",
+  "accept-encoding": "gzip, deflate",
+  "content-length": 46
+}
+Body: productId=a2b19ffe-c6a7-4e54-87ce-3ee430da3467
+
+-----------------------------------------------------------
+
+The response we got was:
+
+Status: 500 - Internal Server Error
+Headers: {
+  "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+  "content-type": "application/json",
+  "date": "Mon, 22 Jun 2026 19:48:17 GMT",
+  "connection": "keep-alive",
+  "keep-alive": "timeout=5",
+  "transfer-encoding": "chunked"
+}
+Body: {
+  "error": "Internal server error"
+}
+
+
+https://on.cypress.io/request
+      at <unknown> (http://localhost:3000/__cypress/runner/cypress_runner.js:136705:72)
+      at tryCatcher (http://localhost:3000/__cypress/runner/cypress_runner.js:1777:23)
+      at Promise._settlePromiseFromHandler (http://localhost:3000/__cypress/runner/cypress_runner.js:1489:31)
+      at Promise._settlePromise (http://localhost:3000/__cypress/runner/cypress_runner.js:1546:18)
+      at Promise._settlePromise0 (http://localhost:3000/__cypress/runner/cypress_runner.js:1591:10)
+      at Promise._settlePromises (http://localhost:3000/__cypress/runner/cypress_runner.js:1671:18)
+      at _drainQueueStep (http://localhost:3000/__cypress/runner/cypress_runner.js:2377:12)
+      at _drainQueue (http://localhost:3000/__cypress/runner/cypress_runner.js:2370:9)
+      at Async._drainQueues (http://localhost:3000/__cypress/runner/cypress_runner.js:2386:5)
+      at Async.drainQueues (http://localhost:3000/__cypress/runner/cypress_runner.js:2256:14)
+  From Your Spec Code:
+      at Context.eval (webpack://yimstore-tele-web/./cypress/e2e/prd-v1-exhaustive-verification.cy.ts:38:11)
+      at getRet (http://localhost:3000/__cypress/runner/cypress_runner.js:123004:20)
+      at tryCatcher (http://localhost:3000/__cypress/runner/cypress_runner.js:1777:23)
+      at Promise.attempt.Promise.try (http://localhost:3000/__cypress/runner/cypress_runner.js:4285:29)
+      at Context.thenFn (http://localhost:3000/__cypress/runner/cypress_runner.js:123015:66)
+      at Context.then (http://localhost:3000/__cypress/runner/cypress_runner.js:123266:21)
+      at wrapped (http://localhost:3000/__cypress/runner/cypress_runner.js:146625:19)
+
+  4) PRD v1 Full Exhaustive Verification Suite
+       3. Klaim Garansi Otomatis (Happy Path)
+         Should allow successful claim and fetch new credentials:
+     CypressError: `cy.request()` failed on:
+
+http://localhost:3000/api/test/seed-claim
+
+The response we received from your web server was:
+
+  > 403: Forbidden
+
+This was considered a failure because the status code was not `2xx` or `3xx`.
+
+If you do not want status codes to cause failures pass the option: `failOnStatusCode: false`
+
+-----------------------------------------------------------
+
+The request we sent was:
+
+Method: POST
+URL: http://localhost:3000/api/test/seed-claim
+Headers: {
+  "Connection": "keep-alive",
+  "x-e2e-bypass": "e2e-bypass-2024",
+  "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Cypress/15.17.0 Chrome/138.0.7204.251 Electron/37.6.0 Safari/537.36",
+  "accept": "*/*",
+  "accept-encoding": "gzip, deflate",
+  "content-length": 0
+}
+
+-----------------------------------------------------------
+
+The response we got was:
+
+Status: 403 - Forbidden
+Headers: {
+  "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+  "content-type": "application/json",
+  "date": "Mon, 22 Jun 2026 19:48:18 GMT",
+  "connection": "keep-alive",
+  "keep-alive": "timeout=5",
+  "transfer-encoding": "chunked"
+}
+Body: {
+  "error": "Unauthorized"
+}
+
+
+https://on.cypress.io/request
+      at <unknown> (http://localhost:3000/__cypress/runner/cypress_runner.js:136705:72)
+      at tryCatcher (http://localhost:3000/__cypress/runner/cypress_runner.js:1777:23)
+      at Promise._settlePromiseFromHandler (http://localhost:3000/__cypress/runner/cypress_runner.js:1489:31)
+      at Promise._settlePromise (http://localhost:3000/__cypress/runner/cypress_runner.js:1546:18)
+      at Promise._settlePromise0 (http://localhost:3000/__cypress/runner/cypress_runner.js:1591:10)
+      at Promise._settlePromises (http://localhost:3000/__cypress/runner/cypress_runner.js:1671:18)
+      at _drainQueueStep (http://localhost:3000/__cypress/runner/cypress_runner.js:2377:12)
+      at _drainQueue (http://localhost:3000/__cypress/runner/cypress_runner.js:2370:9)
+      at Async._drainQueues (http://localhost:3000/__cypress/runner/cypress_runner.js:2386:5)
+      at Async.drainQueues (http://localhost:3000/__cypress/runner/cypress_runner.js:2256:14)
+  From Your Spec Code:
+      at Context.eval (webpack://yimstore-tele-web/./cypress/e2e/prd-v1-exhaustive-verification.cy.ts:96:9)
+
+  5) PRD v1 Full Exhaustive Verification Suite
+       4. Attack Vector - Cooldown Bypass
+         Should reject second claim if cooldown is active:
+     CypressError: `cy.request()` failed on:
+
+http://localhost:3000/api/test/seed-claim
+
+The response we received from your web server was:
+
+  > 403: Forbidden
+
+This was considered a failure because the status code was not `2xx` or `3xx`.
+
+If you do not want status codes to cause failures pass the option: `failOnStatusCode: false`
+
+-----------------------------------------------------------
+
+The request we sent was:
+
+Method: POST
+URL: http://localhost:3000/api/test/seed-claim
+Headers: {
+  "Connection": "keep-alive",
+  "x-e2e-bypass": "e2e-bypass-2024",
+  "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Cypress/15.17.0 Chrome/138.0.7204.251 Electron/37.6.0 Safari/537.36",
+  "accept": "*/*",
+  "accept-encoding": "gzip, deflate",
+  "content-length": 0
+}
+
+-----------------------------------------------------------
+
+The response we got was:
+
+Status: 403 - Forbidden
+Headers: {
+  "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+  "content-type": "application/json",
+  "date": "Mon, 22 Jun 2026 19:48:18 GMT",
+  "connection": "keep-alive",
+  "keep-alive": "timeout=5",
+  "transfer-encoding": "chunked"
+}
+Body: {
+  "error": "Unauthorized"
+}
+
+
+https://on.cypress.io/request
+      at <unknown> (http://localhost:3000/__cypress/runner/cypress_runner.js:136705:72)
+      at tryCatcher (http://localhost:3000/__cypress/runner/cypress_runner.js:1777:23)
+      at Promise._settlePromiseFromHandler (http://localhost:3000/__cypress/runner/cypress_runner.js:1489:31)
+      at Promise._settlePromise (http://localhost:3000/__cypress/runner/cypress_runner.js:1546:18)
+      at Promise._settlePromise0 (http://localhost:3000/__cypress/runner/cypress_runner.js:1591:10)
+      at Promise._settlePromises (http://localhost:3000/__cypress/runner/cypress_runner.js:1671:18)
+      at _drainQueueStep (http://localhost:3000/__cypress/runner/cypress_runner.js:2377:12)
+      at _drainQueue (http://localhost:3000/__cypress/runner/cypress_runner.js:2370:9)
+      at Async._drainQueues (http://localhost:3000/__cypress/runner/cypress_runner.js:2386:5)
+      at Async.drainQueues (http://localhost:3000/__cypress/runner/cypress_runner.js:2256:14)
+  From Your Spec Code:
+      at Context.eval (webpack://yimstore-tele-web/./cypress/e2e/prd-v1-exhaustive-verification.cy.ts:127:9)
+
+  6) PRD v1 Full Exhaustive Verification Suite
+       5. Attack Vector - Telegram IDOR
+         Should block claim if telegram user id does not own the order:
+     CypressError: `cy.request()` failed on:
+
+http://localhost:3000/api/test/seed-claim
+
+The response we received from your web server was:
+
+  > 403: Forbidden
+
+This was considered a failure because the status code was not `2xx` or `3xx`.
+
+If you do not want status codes to cause failures pass the option: `failOnStatusCode: false`
+
+-----------------------------------------------------------
+
+The request we sent was:
+
+Method: POST
+URL: http://localhost:3000/api/test/seed-claim
+Headers: {
+  "Connection": "keep-alive",
+  "x-e2e-bypass": "e2e-bypass-2024",
+  "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Cypress/15.17.0 Chrome/138.0.7204.251 Electron/37.6.0 Safari/537.36",
+  "accept": "*/*",
+  "accept-encoding": "gzip, deflate",
+  "content-length": 0
+}
+
+-----------------------------------------------------------
+
+The response we got was:
+
+Status: 403 - Forbidden
+Headers: {
+  "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+  "content-type": "application/json",
+  "date": "Mon, 22 Jun 2026 19:48:18 GMT",
+  "connection": "keep-alive",
+  "keep-alive": "timeout=5",
+  "transfer-encoding": "chunked"
+}
+Body: {
+  "error": "Unauthorized"
+}
+
+
+https://on.cypress.io/request
+      at <unknown> (http://localhost:3000/__cypress/runner/cypress_runner.js:136705:72)
+      at tryCatcher (http://localhost:3000/__cypress/runner/cypress_runner.js:1777:23)
+      at Promise._settlePromiseFromHandler (http://localhost:3000/__cypress/runner/cypress_runner.js:1489:31)
+      at Promise._settlePromise (http://localhost:3000/__cypress/runner/cypress_runner.js:1546:18)
+      at Promise._settlePromise0 (http://localhost:3000/__cypress/runner/cypress_runner.js:1591:10)
+      at Promise._settlePromises (http://localhost:3000/__cypress/runner/cypress_runner.js:1671:18)
+      at _drainQueueStep (http://localhost:3000/__cypress/runner/cypress_runner.js:2377:12)
+      at _drainQueue (http://localhost:3000/__cypress/runner/cypress_runner.js:2370:9)
+      at Async._drainQueues (http://localhost:3000/__cypress/runner/cypress_runner.js:2386:5)
+      at Async.drainQueues (http://localhost:3000/__cypress/runner/cypress_runner.js:2256:14)
+  From Your Spec Code:
+      at Context.eval (webpack://yimstore-tele-web/./cypress/e2e/prd-v1-exhaustive-verification.cy.ts:168:9)
+
+  7) PRD v1 Full Exhaustive Verification Suite
+       7. Attack Vector - Race Condition
+         Should only allow 1 claim to succeed during concurrent requests:
+     CypressError: `cy.request()` failed on:
+
+http://localhost:3000/api/test/seed-claim
+
+The response we received from your web server was:
+
+  > 403: Forbidden
+
+This was considered a failure because the status code was not `2xx` or `3xx`.
+
+If you do not want status codes to cause failures pass the option: `failOnStatusCode: false`
+
+-----------------------------------------------------------
+
+The request we sent was:
+
+Method: POST
+URL: http://localhost:3000/api/test/seed-claim
+Headers: {
+  "Connection": "keep-alive",
+  "x-e2e-bypass": "e2e-bypass-2024",
+  "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Cypress/15.17.0 Chrome/138.0.7204.251 Electron/37.6.0 Safari/537.36",
+  "accept": "*/*",
+  "accept-encoding": "gzip, deflate",
+  "content-length": 0
+}
+
+-----------------------------------------------------------
+
+The response we got was:
+
+Status: 403 - Forbidden
+Headers: {
+  "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+  "content-type": "application/json",
+  "date": "Mon, 22 Jun 2026 19:48:18 GMT",
+  "connection": "keep-alive",
+  "keep-alive": "timeout=5",
+  "transfer-encoding": "chunked"
+}
+Body: {
+  "error": "Unauthorized"
+}
+
+
+https://on.cypress.io/request
+      at <unknown> (http://localhost:3000/__cypress/runner/cypress_runner.js:136705:72)
+      at tryCatcher (http://localhost:3000/__cypress/runner/cypress_runner.js:1777:23)
+      at Promise._settlePromiseFromHandler (http://localhost:3000/__cypress/runner/cypress_runner.js:1489:31)
+      at Promise._settlePromise (http://localhost:3000/__cypress/runner/cypress_runner.js:1546:18)
+      at Promise._settlePromise0 (http://localhost:3000/__cypress/runner/cypress_runner.js:1591:10)
+      at Promise._settlePromises (http://localhost:3000/__cypress/runner/cypress_runner.js:1671:18)
+      at _drainQueueStep (http://localhost:3000/__cypress/runner/cypress_runner.js:2377:12)
+      at _drainQueue (http://localhost:3000/__cypress/runner/cypress_runner.js:2370:9)
+      at Async._drainQueues (http://localhost:3000/__cypress/runner/cypress_runner.js:2386:5)
+      at Async.drainQueues (http://localhost:3000/__cypress/runner/cypress_runner.js:2256:14)
+  From Your Spec Code:
+      at Context.eval (webpack://yimstore-tele-web/./cypress/e2e/prd-v1-exhaustive-verification.cy.ts:195:9)
+
+  8) PRD v1 Full Exhaustive Verification Suite
+       8. Admin Cooldown Override
+         Should allow admin to bypass cooldown for a specific order item:
+     CypressError: `cy.request()` failed on:
+
+http://localhost:3000/api/test/seed-claim
+
+The response we received from your web server was:
+
+  > 403: Forbidden
+
+This was considered a failure because the status code was not `2xx` or `3xx`.
+
+If you do not want status codes to cause failures pass the option: `failOnStatusCode: false`
+
+-----------------------------------------------------------
+
+The request we sent was:
+
+Method: POST
+URL: http://localhost:3000/api/test/seed-claim
+Headers: {
+  "Connection": "keep-alive",
+  "x-e2e-bypass": "e2e-bypass-2024",
+  "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Cypress/15.17.0 Chrome/138.0.7204.251 Electron/37.6.0 Safari/537.36",
+  "accept": "*/*",
+  "accept-encoding": "gzip, deflate",
+  "content-length": 0
+}
+
+-----------------------------------------------------------
+
+The response we got was:
+
+Status: 403 - Forbidden
+Headers: {
+  "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+  "content-type": "application/json",
+  "date": "Mon, 22 Jun 2026 19:48:18 GMT",
+  "connection": "keep-alive",
+  "keep-alive": "timeout=5",
+  "transfer-encoding": "chunked"
+}
+Body: {
+  "error": "Unauthorized"
+}
+
+
+https://on.cypress.io/request
+      at <unknown> (http://localhost:3000/__cypress/runner/cypress_runner.js:136705:72)
+      at tryCatcher (http://localhost:3000/__cypress/runner/cypress_runner.js:1777:23)
+      at Promise._settlePromiseFromHandler (http://localhost:3000/__cypress/runner/cypress_runner.js:1489:31)
+      at Promise._settlePromise (http://localhost:3000/__cypress/runner/cypress_runner.js:1546:18)
+      at Promise._settlePromise0 (http://localhost:3000/__cypress/runner/cypress_runner.js:1591:10)
+      at Promise._settlePromises (http://localhost:3000/__cypress/runner/cypress_runner.js:1671:18)
+      at _drainQueueStep (http://localhost:3000/__cypress/runner/cypress_runner.js:2377:12)
+      at _drainQueue (http://localhost:3000/__cypress/runner/cypress_runner.js:2370:9)
+      at Async._drainQueues (http://localhost:3000/__cypress/runner/cypress_runner.js:2386:5)
+      at Async.drainQueues (http://localhost:3000/__cypress/runner/cypress_runner.js:2256:14)
+  From Your Spec Code:
+      at Context.eval (webpack://yimstore-tele-web/./cypress/e2e/prd-v1-exhaustive-verification.cy.ts:230:9)
+
+
+
+
+  (Results)
+
+  ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ Tests:        9                                                                                │
+  │ Passing:      1                                                                                │
+  │ Failing:      8                                                                                │
+  │ Pending:      0                                                                                │
+  │ Skipped:      0                                                                                │
+  │ Screenshots:  8                                                                                │
+  │ Video:        false                                                                            │
+  │ Duration:     13 seconds                                                                       │
+  │ Spec Ran:     prd-v1-exhaustive-verification.cy.ts                                             │
+  └────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+  (Screenshots)
+
+  -  /root/yimstore-tele-web/cypress/screenshots/prd-v1-exhaustive-verification.cy.ts     (1280x720)
+     /PRD v1 Full Exhaustive Verification Suite -- 1. Katalog Produk & Responsiveness               
+      -- Should display products on desktop correctly (failed).png                                  
+  -  /root/yimstore-tele-web/cypress/screenshots/prd-v1-exhaustive-verification.cy.ts     (1280x720)
+     /PRD v1 Full Exhaustive Verification Suite -- 1. Katalog Produk & Responsiveness               
+      -- Should display products on mobile correctly (failed).png                                   
+  -  /root/yimstore-tele-web/cypress/screenshots/prd-v1-exhaustive-verification.cy.ts     (1280x720)
+     /PRD v1 Full Exhaustive Verification Suite -- 2. Checkout & Webhook Idempotency                
+     -- Should checkout successfully and block duplicate webhook (Idempotency) (faile               
+     d).png                                                                                         
+  -  /root/yimstore-tele-web/cypress/screenshots/prd-v1-exhaustive-verification.cy.ts     (1280x720)
+     /PRD v1 Full Exhaustive Verification Suite -- 3. Klaim Garansi Otomatis (Happy P               
+     ath) -- Should allow successful claim and fetch new credentials (failed).png                   
+  -  /root/yimstore-tele-web/cypress/screenshots/prd-v1-exhaustive-verification.cy.ts     (1280x720)
+     /PRD v1 Full Exhaustive Verification Suite -- 4. Attack Vector - Cooldown Bypass               
+      -- Should reject second claim if cooldown is active (failed).png                              
+  -  /root/yimstore-tele-web/cypress/screenshots/prd-v1-exhaustive-verification.cy.ts     (1280x720)
+     /PRD v1 Full Exhaustive Verification Suite -- 5. Attack Vector - Telegram IDOR -               
+     - Should block claim if telegram user id does not own the order (failed).png                   
+  -  /root/yimstore-tele-web/cypress/screenshots/prd-v1-exhaustive-verification.cy.ts     (1280x720)
+     /PRD v1 Full Exhaustive Verification Suite -- 7. Attack Vector - Race Condition                
+     -- Should only allow 1 claim to succeed during concurrent requests (failed).png                
+  -  /root/yimstore-tele-web/cypress/screenshots/prd-v1-exhaustive-verification.cy.ts     (1280x720)
+     /PRD v1 Full Exhaustive Verification Suite -- 8. Admin Cooldown Override -- Shou               
+     ld allow admin to bypass cooldown for a specific order item (failed).png                       
+
+
+================================================================================
+
+  (Run Finished)
+
+
+       Spec                                              Tests  Passing  Failing  Pending  Skipped  
+  ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ ✖  prd-v1-exhaustive-verification.cy.t      00:13        9        1        8        -        - │
+  │    s                                                                                           │
+  └────────────────────────────────────────────────────────────────────────────────────────────────┘
+    ✖  1 of 1 failed (100%)                     00:13        9        1        8        -        -  
+
+Error: Command failed with exit code 8: npx cypress run --spec cypress/e2e/prd-v1-exhaustive-verification.cy.ts
+    at makeError (/root/yimstore-tele-web/node_modules/start-server-and-test/node_modules/execa/lib/error.js:60:11)
+    at handlePromise (/root/yimstore-tele-web/node_modules/start-server-and-test/node_modules/execa/index.js:118:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  shortMessage: 'Command failed with exit code 8: npx cypress run --spec cypress/e2e/prd-v1-exhaustive-verification.cy.ts',
+  command: 'npx cypress run --spec cypress/e2e/prd-v1-exhaustive-verification.cy.ts',
+  escapedCommand: '"npx cypress run --spec cypress/e2e/prd-v1-exhaustive-verification.cy.ts"',
+  exitCode: 8,
+  signal: undefined,
+  signalDescription: undefined,
+  stdout: undefined,
+  stderr: undefined,
+  failed: true,
+  timedOut: false,
+  isCanceled: false,
+  killed: false
+}

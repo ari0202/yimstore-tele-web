@@ -1,9 +1,0 @@
-{"timestamp":"00:00:00.519","source":"Server","level":"LOG","message":""}
-{"timestamp":"00:00:03.749","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
-{"timestamp":"01:38:09.357","source":"Server","level":"WARN","message":"[Upstash Redis] Unable to find environment variable: `UPSTASH_REDIS_REST_URL`"}
-{"timestamp":"01:38:09.359","source":"Server","level":"WARN","message":"[Upstash Redis] Unable to find environment variable: `UPSTASH_REDIS_REST_TOKEN`"}
-{"timestamp":"01:38:09.360","source":"Server","level":"WARN","message":"[Upstash Redis] The 'url' property is missing or undefined in your Redis config."}
-{"timestamp":"01:38:09.360","source":"Server","level":"WARN","message":"[Upstash Redis] The 'token' property is missing or undefined in your Redis config."}
-{"timestamp":"01:38:09.373","source":"Server","level":"WARN","message":"[Upstash Redis] Redis client was initialized without url or token. Failed to execute command."}
-{"timestamp":"01:38:13.892","source":"Server","level":"ERROR","message":"Checkout error: TypeError: Failed to parse URL from /pipeline"}
-{"timestamp":"01:38:21.901","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}

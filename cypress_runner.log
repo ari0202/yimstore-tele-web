@@ -1,0 +1,138 @@
+◇ injected env (13) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+🚀 Initiating Dummy Data Injection...
+🧹 Truncating existing tables...
+(node:900616) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///root/yimstore-tele-web/scripts/inject-dummy-data.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /root/yimstore-tele-web/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✅ Injected 3 Categories
+✅ Injected 3 Products
+✅ Injected 13 Inventory Items
+🎉 Dummy Data Injection Complete!
+▲ Next.js 16.2.9 (Turbopack)
+- Environments: .env
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 2.3s
+  Running TypeScript ...
+  Finished TypeScript in 3.0s ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/19) ...
+  Generating static pages using 7 workers (4/19) 
+  Generating static pages using 7 workers (9/19) 
+  Generating static pages using 7 workers (14/19) 
+✓ Generating static pages using 7 workers (19/19) in 274ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ○ /_not-found
+├ ƒ /admin
+├ ƒ /admin/categories
+├ ƒ /admin/inventory
+├ ○ /admin/login
+├ ƒ /admin/orders
+├ ƒ /admin/products
+├ ƒ /admin/settings
+├ ƒ /api/admin/claims/bypass
+├ ƒ /api/admin/inventory/bulk-upload
+├ ƒ /api/checkout
+├ ƒ /api/claim
+├ ƒ /api/cron/process-outbox
+├ ƒ /api/test/revalidate
+├ ƒ /api/test/seed-claim
+├ ƒ /api/webhook
+├ ƒ /api/webhook/telegram
+└ ƒ /order/[id]
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+1: starting server using command "npx next start -p 3001"
+and when url "[ 'http://localhost:3001' ]" is responding with HTTP status code 200
+running tests using command "CYPRESS_baseUrl=http://localhost:3001 npx cypress run --spec cypress/e2e/prd-v1-exhaustive-verification.cy.ts"
+
+▲ Next.js 16.2.9
+- Local:         http://localhost:3001
+- Network:       http://213.163.192.100:3001
+✓ Ready in 61ms
+◇ injected env (13) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+Warning: The allowCypressEnv configuration option is enabled. This allows any browser code to read values from Cypress.env(). This is insecure and will be removed in a future major version.
+
+1. Replace Cypress.env() calls with cy.env() (for sensitive values) or Cypress.expose() (for public configuration)
+2. Set allowCypressEnv: false in your Cypress configuration to disable Cypress.env()
+
+Learn more: https://on.cypress.io/cypress-env-migration
+
+
+================================================================================
+
+  (Run Starting)
+
+  ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ Cypress:        15.17.0                                                                        │
+  │ Browser:        Electron 138 (headless)                                                        │
+  │ Node Version:   v22.22.3 (/root/.nvm/versions/node/v22.22.3/bin/node)                          │
+  │ Specs:          1 found (prd-v1-exhaustive-verification.cy.ts)                                 │
+  │ Searched:       cypress/e2e/prd-v1-exhaustive-verification.cy.ts                               │
+  └────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+                                                                                                    
+  Running:  prd-v1-exhaustive-verification.cy.ts                                            (1 of 1)
+
+
+  PRD v1 Full Exhaustive Verification Suite
+    1. Katalog Produk & Responsiveness
+      ✓ Should display products on desktop correctly (240ms)
+      ✓ Should display products on mobile correctly (98ms)
+    2. Checkout & Webhook Idempotency
+      ✓ Should checkout successfully and block duplicate webhook (Idempotency) (303ms)
+    3. Klaim Garansi Otomatis (Happy Path)
+      ✓ Should allow successful claim and fetch new credentials (691ms)
+    4. Attack Vector - Cooldown Bypass
+      ✓ Should reject second claim if cooldown is active (447ms)
+    5. Attack Vector - Telegram IDOR
+      ✓ Should block claim if telegram user id does not own the order (374ms)
+    7. Attack Vector - Race Condition
+      ✓ Should only allow 1 claim to succeed during concurrent requests (425ms)
+    8. Admin Cooldown Override
+      ✓ Should allow admin to bypass cooldown for a specific order item (318ms)
+    6. Maintenance Mode (Global Kill-Switch)
+      ✓ Should reject checkout and claims when maintenance mode is active (16ms)
+
+
+  9 passing (3s)
+
+
+  (Results)
+
+  ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ Tests:        9                                                                                │
+  │ Passing:      9                                                                                │
+  │ Failing:      0                                                                                │
+  │ Pending:      0                                                                                │
+  │ Skipped:      0                                                                                │
+  │ Screenshots:  0                                                                                │
+  │ Video:        false                                                                            │
+  │ Duration:     3 seconds                                                                        │
+  │ Spec Ran:     prd-v1-exhaustive-verification.cy.ts                                             │
+  └────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+
+  (Run Finished)
+
+
+       Spec                                              Tests  Passing  Failing  Pending  Skipped  
+  ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ ✔  prd-v1-exhaustive-verification.cy.t      00:03        9        9        -        -        - │
+  │    s                                                                                           │
+  └────────────────────────────────────────────────────────────────────────────────────────────────┘
+    ✔  All specs passed!                        00:03        9        9        -        -        -  
+

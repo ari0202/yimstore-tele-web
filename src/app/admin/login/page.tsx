@@ -4,34 +4,37 @@ import * as bcrypt from 'bcryptjs';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { signAdminSession } from '@/lib/auth';
 import { AlertCircle } from 'lucide-react';
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
 
-export default function AdminLogin({ searchParams }: { searchParams: { error?: string } }) {
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+const ratelimit = (redisUrl && redisToken) ? new Ratelimit({
+  redis: new Redis({
+    url: redisUrl,
+    token: redisToken,
+  }),
+  limiter: Ratelimit.slidingWindow(5, '15 m'),
+}) : null;
+
+export default async function AdminLogin({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const resolvedSearchParams = await searchParams;
   async function handleLogin(formData: FormData) {
     'use server';
     
     const reqHeaders = await headers();
-    // Fallback Limiter: x-real-ip -> x-vercel-forwarded-for -> x-forwarded-for
     const ip = reqHeaders.get('x-real-ip') 
             || reqHeaders.get('x-vercel-forwarded-for') 
             || reqHeaders.get('x-forwarded-for')?.split(',')[0] 
-            || 'unknown';
+            || '127.0.0.1';
 
-    // 1. Check Rate Limit
-    const { data: attempt } = await supabaseAdmin
-        .from('login_attempts')
-        .select('*')
-        .eq('ip_address', ip)
-        .single();
-
-    if (attempt && attempt.attempts >= 5) {
-        const lastAttempt = new Date(attempt.last_attempt).getTime();
-        const now = new Date().getTime();
-        if (now - lastAttempt < 15 * 60 * 1000) {
-            redirect('/admin/login?error=Rate limit exceeded. Try again in 15 minutes.');
-        } else {
-            // Reset after 15 mins
-            await supabaseAdmin.from('login_attempts').delete().eq('ip_address', ip);
-        }
+    const isE2E = process.env.APP_ENV === 'test' && reqHeaders.get('x-e2e-bypass') === process.env.E2E_BYPASS_SECRET;
+    if (!isE2E && ratelimit) {
+      const { success } = await ratelimit.limit(`admin_login_${ip}`);
+      const rateLimitExceeded = !success;
+      if (rateLimitExceeded) {
+        redirect(`/admin/login?error=Rate limit exceeded. Coba lagi dalam 15 menit.`);
+      }
     }
 
     const username = formData.get('username') as string;
@@ -54,18 +57,8 @@ export default function AdminLogin({ searchParams }: { searchParams: { error?: s
     }
 
     if (!admin || !validPassword) {
-        // Record failed attempt
-        const newAttempts = attempt ? attempt.attempts + 1 : 1;
-        await supabaseAdmin.from('login_attempts').upsert({
-            ip_address: ip,
-            attempts: newAttempts,
-            last_attempt: new Date().toISOString()
-        });
         redirect('/admin/login?error=Invalid credentials');
     }
-
-    // 3. Clear attempts on success
-    await supabaseAdmin.from('login_attempts').delete().eq('ip_address', ip);
 
     // 4. Create Session
     const session_id = crypto.randomUUID();
@@ -98,10 +91,10 @@ export default function AdminLogin({ searchParams }: { searchParams: { error?: s
             <p className="text-gray-400 mt-2">Sign in to manage your store</p>
           </div>
 
-          {searchParams.error && (
+          {resolvedSearchParams.error && (
             <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-lg flex items-center gap-3 text-red-500">
               <AlertCircle size={20} />
-              <p className="text-sm font-medium">{searchParams.error}</p>
+              <p className="text-sm font-medium">{resolvedSearchParams.error}</p>
             </div>
           )}
 

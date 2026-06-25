@@ -11,7 +11,7 @@ export default function Navbar() {
           {/* Left: Logo */}
           <div className="flex-shrink-0 flex items-center">
             <Link href="/" className="text-xl font-bold tracking-tight text-[var(--color-text-primary)]">
-              YimStore
+              Yim Digital
             </Link>
           </div>
 

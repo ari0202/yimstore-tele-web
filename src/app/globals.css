@@ -1,19 +1,19 @@
 @import "tailwindcss";
 
 @theme {
-  /* Minimalist UI Base Variables */
-  --color-surface-bg: #f9fafb; /* gray-50 */
+  /* Soft Structuralism Base Variables */
+  --color-surface-bg: #f4fcfe; /* light_cyan-900 */
   --color-surface-card: #ffffff; 
-  --color-surface-core: #ffffff;
+  --color-surface-core: #effafd; /* frosted_blue-900 */
   
-  --color-text-primary: #111827; /* gray-900 */
-  --color-text-secondary: #4b5563; /* gray-600 */
-  --color-text-muted: #9ca3af; /* gray-400 */
+  --color-text-primary: #010113; /* deep_twilight-100 */
+  --color-text-secondary: #011836; /* french_blue-200 */
+  --color-text-muted: #005a77; /* blue_green-300 */
   
-  --color-action-primary: #2563eb; /* blue-600 */
-  --color-action-hover: #1d4ed8; /* blue-700 */
+  --color-action-primary: #023e8a; /* french_blue-500 */
+  --color-action-hover: #0077b6; /* bright_teal_blue-500 */
   
-  --color-border-soft: #f3f4f6; /* gray-100 */
+  --color-border-soft: #d4f3f9; /* light_cyan-600 */
 }
 
 /* Base Body Styling */
@@ -26,7 +26,7 @@
 body {
   background-color: var(--color-surface-bg);
   color: var(--color-text-primary);
-  font-family: var(--font-inter), sans-serif;
+  font-family: var(--font-outfit), sans-serif;
 }
 
 /* Premium Noise Grain Overlay */

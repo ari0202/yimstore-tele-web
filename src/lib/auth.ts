@@ -51,7 +51,6 @@ export async function verifyAdminSession() {
 }
 
 export async function logoutAdmin() {
-    'use server';
     const cookieStore = await cookies();
     const token = cookieStore.get('admin_session')?.value;
 

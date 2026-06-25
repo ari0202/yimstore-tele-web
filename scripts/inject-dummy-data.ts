@@ -20,9 +20,41 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 async function inject() {
     console.log('🚀 Initiating Dummy Data Injection...');
 
-    // 2. Clear Existing Test Data (Optional cleanup if needed in dev)
-    // Note: Use careful DELETE here if required, or just rely on appending.
-    // For safety, we will just append because we don't want to accidentally truncate even if bypass works.
+    // 2. Clear Existing Test Data & Rate Limiters
+    if (process.env.UPSTASH_REDIS_REST_URL && process.env.IS_TEST_REDIS === 'true') {
+        console.log('🧹 Flushing Test Redis Database (Idempotency Reset)...');
+        try {
+            const response = await fetch(`${process.env.UPSTASH_REDIS_REST_URL}/flushdb`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}` }
+            });
+            if (response.ok) {
+                console.log('✅ Test Redis Flushed');
+            } else {
+                console.warn('⚠️ Failed to flush Redis:', await response.text());
+            }
+        } catch (e) {
+            console.warn('⚠️ Error connecting to Redis for flush:', e);
+        }
+    }
+    
+    console.log('🧹 Truncating existing tables...');
+    await supabase.from('warranty_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('pending_claims').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('outbox_events').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('order_items').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('orders').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('inventory').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('products').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('categories').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    
+    // Inject Dummy Admin
+    await supabase.from('admins').delete().eq('username', 'admin');
+    await supabase.from('admins').insert({
+        username: 'admin',
+        password_hash: '$2b$10$8sAQMSREcaBqPl4/v./yDOD6.VnxhFL/tOe4GDwmJy43y3xUw5ad.' // 'admin123'
+    });
+    console.log('✅ Injected Dummy Admin (admin/admin123)');
     
     // 3. Inject Categories
     const categories = [
@@ -31,26 +63,48 @@ async function inject() {
         { name: 'VPN', slug: 'vpn' }
     ];
 
-    const { data: catData, error: catErr } = await supabase.from('categories').insert(categories).select();
-    if (catErr) throw catErr;
-    console.log(`✅ Injected ${catData.length} Categories`);
+    let catData;
+    const { data: newCat, error: catErr } = await supabase.from('categories').insert(categories).select();
+    if (catErr && catErr.code === '23505') { // Unique violation
+        console.log('⚠️ Categories already exist. Fetching existing ones...');
+        const { data: existingCat } = await supabase.from('categories').select('*');
+        catData = existingCat;
+    } else if (catErr) {
+        console.log('⚠️ Warning injecting categories:', catErr);
+        const { data: existingCat } = await supabase.from('categories').select('*');
+        catData = existingCat;
+    } else {
+        catData = newCat;
+    }
+    console.log(`✅ Injected ${catData?.length} Categories`);
 
-    const streamCat = catData.find((c: any) => c.slug === 'streaming');
-    const designCat = catData.find((c: any) => c.slug === 'design');
+    const streamCat = catData?.find((c: any) => c.slug === 'streaming');
+    const designCat = catData?.find((c: any) => c.slug === 'design');
 
     // 4. Inject Products
     const products = [
-        { category_id: streamCat.id, name: 'Netflix Premium 1 Bulan', price: 35000, warranty_days: 30, max_claim_limit: 2, description: 'Akun premium 4K' },
-        { category_id: streamCat.id, name: 'Spotify Premium 1 Bulan', price: 15000, warranty_days: 25, max_claim_limit: 1, description: 'No ads, offline' },
-        { category_id: designCat.id, name: 'Canva Pro Invite', price: 10000, warranty_days: 30, max_claim_limit: 1, description: 'Invite via email' }
+        { category_id: streamCat!.id, name: 'Netflix Premium 1 Bulan', price: 35000, warranty_days: 30, max_claim_limit: 5, cooldown_value: 1, cooldown_unit: 'hours', description: 'Akun premium 4K' },
+        { category_id: streamCat!.id, name: 'Spotify Premium 1 Bulan', price: 15000, warranty_days: 25, max_claim_limit: 1, cooldown_value: 1, cooldown_unit: 'hours', description: 'No ads, offline' },
+        { category_id: designCat!.id, name: 'Canva Pro Invite', price: 10000, warranty_days: 30, max_claim_limit: 1, cooldown_value: 1, cooldown_unit: 'hours', description: 'Invite via email' }
     ];
 
-    const { data: prodData, error: prodErr } = await supabase.from('products').insert(products).select();
-    if (prodErr) throw prodErr;
-    console.log(`✅ Injected ${prodData.length} Products`);
+    let prodData;
+    const { data: newProd, error: prodErr } = await supabase.from('products').insert(products).select();
+    if (prodErr && prodErr.code === '23505') {
+        console.log('⚠️ Products already exist. Fetching existing ones...');
+        const { data: existingProd } = await supabase.from('products').select('*');
+        prodData = existingProd;
+    } else if (prodErr) {
+        console.log('⚠️ Warning injecting products:', prodErr);
+        const { data: existingProd } = await supabase.from('products').select('*');
+        prodData = existingProd;
+    } else {
+        prodData = newProd;
+    }
+    console.log(`✅ Injected ${prodData?.length} Products`);
 
     // 5. Inject Inventory
-    const netflix = prodData.find((p: any) => p.name.includes('Netflix'));
+    const netflix = prodData?.find((p: any) => p.name.includes('Netflix'));
     const inventory = [];
     
     // 10 Available

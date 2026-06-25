@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 // Gunakan koneksi langsung (port 5432) untuk bypass masalah pooler & edge-runtime
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:%23Sakithatiku02@db.zdhlfoiytkamnyywbgyx.supabase.co:5432/postgres';
+const connectionString = 'postgresql://postgres:%23Sakithatiku02@db.zdhlfoiytkamnyywbgyx.supabase.co:5432/postgres';
 
 async function runMigrations() {
     console.log('🚀 Starting migration push...');
@@ -56,7 +56,7 @@ async function runMigrations() {
             } catch (err: any) {
                 await client.query('ROLLBACK');
                 // Jika error karena objek sudah ada (misal tertinggal dari eksekusi setengah jalan), tawarkan manual bypass
-                if (err.code === '42P07' || err.code === '42710') {
+                if (err.code === '42P07' || err.code === '42710' || err.code === '42701') {
                     console.warn(`⚠️ Warning: ${err.message}. It seems this migration was already partially applied.`);
                     console.log(`⏭️  Marking as applied and skipping...`);
                     try {

@@ -1,0 +1,44 @@
+
+> yimstore-tele-web@1.0.0 dev
+> next dev
+
+▲ Next.js 16.2.9 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://213.163.192.100:3000
+- Environments: .env
+✓ Ready in 194ms
+
+ POST /api/cron/process-outbox 401 in 442ms (next.js: 429ms, application-code: 12ms)
+ POST /api/cron/process-outbox 401 in 451ms (next.js: 448ms, application-code: 3ms)
+ GET /admin/login 200 in 1784ms (next.js: 1644ms, proxy.ts: 34ms, application-code: 106ms)
+ GET /noise.png 404 in 276ms (next.js: 245ms, application-code: 31ms)
+ GET /admin 200 in 502ms (next.js: 367ms, proxy.ts: 4ms, application-code: 131ms)
+ POST /admin/login 303 in 858ms (next.js: 3ms, proxy.ts: 4ms, application-code: 852ms)
+  └─ ƒ <inline action>({}) in 338ms src/app/admin/login/page.tsx
+ GET /admin/inventory 200 in 528ms (next.js: 396ms, proxy.ts: 4ms, application-code: 128ms)
+ GET /noise.png 404 in 31ms (next.js: 3ms, application-code: 28ms)
+ GET /admin/inventory 200 in 62ms (next.js: 1721µs, proxy.ts: 3ms, application-code: 57ms)
+ GET /noise.png 404 in 27ms (next.js: 3ms, application-code: 25ms)
+ GET /admin/inventory 200 in 72ms (next.js: 6ms, proxy.ts: 5ms, application-code: 61ms)
+ POST /api/admin/inventory/bulk-upload 200 in 268ms (next.js: 196ms, application-code: 72ms)
+ GET /admin/inventory/available 200 in 409ms (next.js: 341ms, proxy.ts: 3ms, application-code: 64ms)
+ POST /admin/inventory/available 200 in 63ms (next.js: 1628µs, proxy.ts: 7ms, application-code: 54ms)
+  └─ ƒ getAvailableInventory() in 44ms src/app/admin/(dashboard)/inventory/actions.ts
+ GET /admin/inventory 200 in 53ms (next.js: 1641µs, proxy.ts: 3ms, application-code: 48ms)
+ POST /api/admin/inventory/bulk-upload 200 in 46ms (next.js: 1637µs, application-code: 44ms)
+ GET /admin/inventory/available 200 in 62ms (next.js: 1765µs, proxy.ts: 3ms, application-code: 57ms)
+ POST /admin/inventory/available 200 in 55ms (next.js: 2ms, proxy.ts: 4ms, application-code: 48ms)
+  └─ ƒ getAvailableInventory() in 42ms src/app/admin/(dashboard)/inventory/actions.ts
+ POST /admin/inventory/available 200 in 82ms (next.js: 1374µs, proxy.ts: 2ms, application-code: 78ms)
+  └─ ƒ deleteInventoryAction({}) in 41ms src/app/admin/(dashboard)/inventory/actions.ts
+ POST /admin/inventory/available 200 in 46ms (next.js: 1690µs, proxy.ts: 3ms, application-code: 42ms)
+  └─ ƒ getAvailableInventory() in 36ms src/app/admin/(dashboard)/inventory/actions.ts
+ GET /admin/inventory 200 in 52ms (next.js: 1552µs, proxy.ts: 5ms, application-code: 45ms)
+ GET /admin/inventory 200 in 65ms (next.js: 1942µs, proxy.ts: 3ms, application-code: 59ms)
+ POST /api/admin/inventory/bulk-upload 200 in 51ms (next.js: 1734µs, application-code: 50ms)
+ GET /admin/inventory/available 200 in 53ms (next.js: 1546µs, proxy.ts: 2ms, application-code: 49ms)
+ POST /admin/inventory/available 200 in 51ms (next.js: 1687µs, proxy.ts: 3ms, application-code: 46ms)
+  └─ ƒ getAvailableInventory() in 41ms src/app/admin/(dashboard)/inventory/actions.ts
+ POST /api/cron/process-outbox 401 in 5ms (next.js: 2ms, application-code: 3ms)
+ POST /api/cron/process-outbox 401 in 10ms (next.js: 6ms, application-code: 4ms)
+[?25h

@@ -1,12 +1,25 @@
 import { cookies } from 'next/headers';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { createPakasirTransaction } from '@/lib/pakasir';
+import AutoRefresh from './AutoRefresh';
+import PaymentSection from './PaymentSection';
+import CopyButton from './CopyButton';
 
-export default async function OrderDashboard({ params }: { params: { id: string } }) {
+export default async function OrderDashboard({ params, searchParams }: { params: { id: string }, searchParams: { token?: string } }) {
   // Await cookies and params as required in modern Next.js
   const cookieStore = await cookies();
   const resolvedParams = await params;
+  const resolvedSearch = await searchParams;
+  let rawId = resolvedParams.id;
+  let urlToken = resolvedSearch.token;
   
-  const token = cookieStore.get(`order_token_${resolvedParams.id}`)?.value;
+  if (rawId.includes('---')) {
+    const parts = rawId.split('---');
+    rawId = parts[0];
+    urlToken = parts[1];
+  }
+
+  const token = urlToken || cookieStore.get(`order_token_${rawId}`)?.value;
 
   if (!token) {
     return (
@@ -28,20 +41,23 @@ export default async function OrderDashboard({ params }: { params: { id: string 
   const { data: order, error } = await supabaseAdmin
     .from('orders')
     .select(`
-      id, total_amount, payment_status,
+      id,
+      total_amount,
+      payment_status,
       order_items (
         id, warranty_end_date, current_claim_count,
-        inventory!inner ( 
-          credential_data, 
-          products ( name, max_claim_limit, warranty_days )
+        products ( name, max_claim_limit, warranty_days ),
+        inventory ( 
+          credential_data
         )
       )
     `)
-    .eq('id', resolvedParams.id)
+    .eq('id', rawId)
     .eq('access_token', token)
     .single();
 
   if (error || !order) {
+    console.error("Order fetch error:", error, "Order:", order);
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-800">
         <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg border border-red-100 text-center">
@@ -52,102 +68,178 @@ export default async function OrderDashboard({ params }: { params: { id: string 
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8 text-gray-800">
-      <div className="max-w-3xl mx-auto space-y-6">
-        
-        {/* Header */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center">
-          <div>
-            <h1 className="text-2xl font-black text-gray-900 tracking-tight">Dashboard Pesanan</h1>
-            <p className="text-sm text-gray-500 mt-1 font-mono">{order.id}</p>
-          </div>
-          <div className="flex flex-col md:flex-row items-end md:items-center gap-3 mt-4 md:mt-0">
-            <div className="px-4 py-1.5 bg-green-50 text-green-700 rounded-full font-medium text-sm flex items-center gap-2 border border-green-200">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-              {order.payment_status.toUpperCase()}
-            </div>
-            
-            <a 
-              href={`https://t.me/YimStoreBot?start=token_${token}`} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="px-4 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-full font-medium text-sm transition-colors flex items-center gap-2"
-            >
-              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.892-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
-              Koneksi Telegram
-            </a>
-          </div>
-        </div>
+  // Ambil detail QRIS on-the-fly untuk pesanan pending
+  let qrisString = null;
+  let paymentExpiredAt = null;
+  let totalPayment = order.total_amount;
+  const shortId = `INV-${order.id.split('-')[0].toUpperCase()}`;
 
+  if (order.payment_status === 'pending') {
+    try {
+      const detail = await createPakasirTransaction(shortId, order.total_amount);
+      if (detail?.payment?.payment_number) {
+        qrisString = detail.payment.payment_number;
+        paymentExpiredAt = detail.payment.expired_at;
+        if (detail.payment.total_payment) {
+          totalPayment = detail.payment.total_payment;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to get QRIS details:', e);
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-[var(--color-surface-bg)] p-4 md:p-8 text-[var(--color-text-primary)] relative">
+      {order.payment_status === 'pending' && <AutoRefresh intervalMs={10000} />}
+      <div className="max-w-3xl mx-auto space-y-6 relative z-10">
+        
         {/* Order Items */}
         {order.order_items.map((item: any) => {
-          const product = item.inventory?.products;
-          const isWarrantyActive = new Date(item.warranty_end_date) > new Date();
-          const canClaim = isWarrantyActive && item.current_claim_count < product.max_claim_limit;
+          const product = item.products;
+          const isPaid = ['paid', 'success', 'completed'].includes(order.payment_status?.toLowerCase());
+          const isWarrantyActive = isPaid && new Date(item.warranty_end_date) > new Date();
+          const canClaim = isPaid && isWarrantyActive && item.current_claim_count < product.max_claim_limit;
 
           return (
-            <div key={item.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="p-6 border-b border-gray-50 bg-slate-50/50">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900">{product?.name || 'Produk Digital'}</h2>
-                    <p className="text-sm text-gray-500 mt-1">Garansi {product?.warranty_days} Hari</p>
+            <div key={item.id} className="bg-[var(--color-surface-card)] rounded-2xl shadow-sm border border-[var(--color-border-soft)] overflow-hidden">
+              <div className="p-5 border-b border-[var(--color-border-soft)] bg-[var(--color-surface-core)]/30">
+                <div className="flex justify-between items-start gap-4">
+                  <div className="flex-1">
+                    <h2 className="text-lg font-bold text-[var(--color-text-primary)] flex items-start gap-2">
+                      <span className="leading-tight">{product?.name || 'Produk Digital'}</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                      </svg>
+                    </h2>
+                    <p className="text-sm text-[var(--color-text-muted)] mt-1.5 font-medium flex items-center gap-1.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[var(--color-action-primary)]" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v3a1 1 0 102 0V7z" clipRule="evenodd" />
+                      </svg>
+                      Garansi {product?.warranty_days} Hari
+                    </p>
+                  </div>
+                  <div className="text-right flex flex-col items-end gap-1.5 flex-shrink-0">
+                    <span className="inline-block px-3 py-1 bg-white border border-[var(--color-border-soft)] text-[var(--color-text-muted)] rounded-md text-xs font-mono font-bold tracking-widest shadow-sm whitespace-nowrap">
+                      {shortId}
+                    </span>
+                    {order.payment_status === 'pending' ? (
+                      <div className="flex items-center gap-1.5 text-yellow-600 mt-0.5 bg-yellow-50 px-2.5 py-1 rounded-full border border-yellow-200 shadow-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"></span>
+                        <span className="text-[10px] font-bold tracking-wider uppercase">Pending</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 text-sky-600 mt-0.5 bg-sky-50 px-2.5 py-1 rounded-full border border-sky-200 shadow-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+                        <span className="text-[10px] font-bold tracking-wider uppercase">{order.payment_status}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
               
-              <div className="p-6 space-y-6">
-                {/* Credentials Box */}
-                <div className="bg-gray-900 rounded-xl p-5 relative group">
-                  <div className="absolute top-0 right-0 bg-gray-800 text-xs text-gray-400 px-3 py-1 rounded-bl-lg rounded-tr-xl font-mono">
-                    Kredensial Aktif
+              <div className="p-5 md:p-6 space-y-6">
+                {!isPaid ? (
+                  <div className="space-y-6">
+                    <div className="text-center pt-2">
+                      <h3 className="font-black text-xl text-[var(--color-text-primary)]">Selesaikan Pembayaran</h3>
+                      <p className="text-sm text-[var(--color-text-muted)] mt-1">Sistem akan memverifikasi otomatis dalam 1-5 menit.</p>
+                    </div>
+                    <div className="text-center space-y-8">
+                      
+                      {qrisString ? (
+                        <PaymentSection 
+                          qrisString={qrisString}
+                          totalAmount={totalPayment}
+                          paymentExpiredAt={paymentExpiredAt || ''}
+                          token={token}
+                        />
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                            <svg className="w-8 h-8 animate-spin" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                          </div>
+                          <p className="text-gray-600 text-sm max-w-md mx-auto">
+                            Menyiapkan QRIS pembayaran Anda... Silakan _refresh_ halaman ini dalam beberapa detik.
+                          </p>
+                        </div>
+                      )}
+                      
+                      <p className="text-xs text-gray-400 mt-4 max-w-md mx-auto border-t border-[var(--color-border-soft)] pt-4">
+                        Untuk simulasi pengetesan (Sandbox), Anda dapat mengubah status pesanan ini melalui Dashboard Admin Pakasir. Halaman ini akan otomatis memperbarui kontennya setelah Webhook pembayaran berhasil diterima.
+                      </p>
+                    </div>
                   </div>
-                  <pre className="text-green-400 font-mono text-sm whitespace-pre-wrap mt-2">
-                    {item.inventory?.credential_data ? JSON.stringify(item.inventory.credential_data, null, 2) : 'Sedang diproses...'}
-                  </pre>
-                </div>
+                ) : (
+                  <>
+                    {/* Credentials Box */}
+                    <div className="bg-gray-900 rounded-xl p-5 relative group mt-4">
+                      {item.inventory?.credential_data && (
+                        <CopyButton text={JSON.stringify(item.inventory.credential_data, null, 2)} />
+                      )}
+                      <div className="text-xs text-gray-400 font-mono mb-2">
+                        Kredensial Aktif:
+                      </div>
+                      <pre className="text-green-400 font-mono text-sm whitespace-pre-wrap">
+                        {item.inventory?.credential_data ? JSON.stringify(item.inventory.credential_data, null, 2) : 'Sedang diproses...'}
+                      </pre>
+                    </div>
 
-                {/* Warranty Status */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100">
-                    <p className="text-xs text-blue-500 font-semibold uppercase tracking-wider mb-1">Berlaku Hingga</p>
-                    <p className="text-gray-900 font-medium">
-                      {new Date(item.warranty_end_date).toLocaleDateString('id-ID', {
-                        day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
-                      })}
-                    </p>
-                  </div>
-                  <div className="bg-orange-50/50 rounded-xl p-4 border border-orange-100">
-                    <p className="text-xs text-orange-500 font-semibold uppercase tracking-wider mb-1">Sisa Limit Klaim</p>
-                    <p className="text-gray-900 font-medium">
-                      {product.max_claim_limit - item.current_claim_count} dari {product.max_claim_limit}
-                    </p>
-                  </div>
-                </div>
+                    {/* Warranty Status */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100">
+                        <p className="text-xs text-blue-500 font-semibold uppercase tracking-wider mb-1">Berlaku Hingga</p>
+                        <p className="text-gray-900 font-medium">
+                          {new Date(item.warranty_end_date).toLocaleDateString('id-ID', {
+                            day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
+                      <div className="bg-orange-50/50 rounded-xl p-4 border border-orange-100">
+                        <p className="text-xs text-orange-500 font-semibold uppercase tracking-wider mb-1">Sisa Limit Klaim</p>
+                        <p className="text-gray-900 font-medium">
+                          {product.max_claim_limit - item.current_claim_count} dari {product.max_claim_limit}
+                        </p>
+                      </div>
+                    </div>
 
-                {/* Action Area */}
-                <div className="pt-4 border-t border-gray-100">
-                  <button 
-                    disabled={!canClaim}
-                    className={`w-full py-3.5 rounded-xl font-semibold transition-all duration-200 flex justify-center items-center gap-2
-                      ${canClaim 
-                        ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md hover:shadow-lg hover:-translate-y-0.5' 
-                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
-                    // TODO: Hook this to client-side fetch call
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-                    </svg>
-                    {canClaim ? 'Klaim Garansi Otomatis' : 'Garansi Tidak Tersedia'}
-                  </button>
-                  {!isWarrantyActive && (
-                    <p className="text-xs text-center text-red-500 mt-2">Masa garansi telah kedaluwarsa.</p>
-                  )}
-                  {isWarrantyActive && item.current_claim_count >= product.max_claim_limit && (
-                    <p className="text-xs text-center text-red-500 mt-2">Batas klaim maksimal telah tercapai.</p>
-                  )}
-                </div>
+                    <div className="pt-6 border-t border-[var(--color-border-soft)] space-y-3 mt-4">
+                      <a 
+                        href={`https://t.me/${process.env.TELEGRAM_BOT_USERNAME || 'YimStoreBot'}?start=token_${token}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="w-full py-3.5 rounded-xl font-bold transition-all duration-200 flex justify-center items-center gap-2 bg-[var(--color-action-primary)] hover:bg-[var(--color-action-hover)] text-white shadow-md hover:shadow-lg hover:-translate-y-0.5"
+                      >
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.223-.548.223l.188-2.85 5.18-4.686c.223-.195-.054-.285-.346-.09l-6.4 4.024-2.76-.86c-.6-.185-.61-.6.125-.89l10.736-4.138c.498-.184.93.116.805.882z"/></svg>
+                        Buka Telegram Bot
+                      </a>
+                      
+                      <button 
+                        disabled={!canClaim}
+                        className={`w-full py-3.5 rounded-xl font-semibold transition-all duration-200 flex justify-center items-center gap-2
+                          ${canClaim 
+                            ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md hover:shadow-lg hover:-translate-y-0.5' 
+                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                        // TODO: Hook this to client-side fetch call
+                        data-item-id={item.id}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                        </svg>
+                        {canClaim ? 'Klaim Garansi Otomatis' : 'Garansi Tidak Tersedia'}
+                      </button>
+                      {!isWarrantyActive && (
+                        <p className="text-xs text-center text-red-500 mt-2">Masa garansi telah kedaluwarsa.</p>
+                      )}
+                      {isWarrantyActive && item.current_claim_count >= product.max_claim_limit && (
+                        <p className="text-xs text-center text-red-500 mt-2">Batas klaim maksimal telah tercapai.</p>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           );

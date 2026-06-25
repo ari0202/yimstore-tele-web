@@ -1,0 +1,14 @@
+▲ Next.js 16.2.9 (Turbopack)
+- Local:         http://localhost:3002
+- Network:       http://213.163.192.100:3002
+- Environments: .env
+✓ Ready in 260ms
+⨯ Another next dev server is already running.
+
+- Local:        http://localhost:3001
+- PID:          860440
+- Dir:          /root/yimstore-tele-web
+- Log:          .next/dev/logs/next-development.log
+
+Run kill 860440 to stop it.
+[?25h

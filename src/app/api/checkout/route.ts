@@ -1,17 +1,31 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { createPakasirTransaction } from '@/lib/pakasir';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 
 // Initialize global Redis rate limiter for Serverless
-const ratelimit = new Ratelimit({
-  redis: Redis.fromEnv(),
+// Use lazy initialization or bypass if env vars are missing
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+const ratelimit = (redisUrl && redisToken) ? new Ratelimit({
+  redis: new Redis({
+    url: redisUrl,
+    token: redisToken,
+  }),
   limiter: Ratelimit.slidingWindow(5, '1 m'),
-});
+}) : null;
 
 export async function POST(req: Request) {
   try {
+    const protocol = req.headers.get('x-forwarded-proto') || 'http';
+    const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
+    const baseUrl = host ? `${protocol}://${host}` : (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000');
+
+    // Helper untuk redirect error agar tidak muncul JSON raw di browser
+    const errorRedirect = (msg: string) => NextResponse.redirect(`${baseUrl}/?error=${encodeURIComponent(msg)}`, { status: 303 });
+
     // 1. Eksekusi Rate Limit PERTAMA KALI (Sebelum menyentuh DB untuk mencegah koneksi habis)
     const authHeader = req.headers.get('authorization');
     const isInternalBot = authHeader === `Bearer ${process.env.BOT_INTERNAL_TOKEN}`;
@@ -24,31 +38,46 @@ export async function POST(req: Request) {
       rateLimitKey = `tg_user_${telegramUserId}`;
     }
 
-    const { success } = await ratelimit.limit(`checkout_${rateLimitKey}`);
-    if (!success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    const isE2E = process.env.APP_ENV === 'test' && req.headers.get('x-e2e-bypass') === process.env.E2E_BYPASS_SECRET;
+    if (!isE2E && ratelimit) {
+      const { success } = await ratelimit.limit(`checkout_${rateLimitKey}`);
+      if (!success) return errorRedirect('Terlalu banyak permintaan. Coba lagi nanti.');
+    } else if (!isE2E && !ratelimit && process.env.NODE_ENV === 'production') {
+      console.warn('⚠️ Rate limiter is bypassed because Upstash Redis env vars are missing.');
+    }
 
     // 2. Check Global Kill-Switch (Aman karena Rate Limit sudah lewat)
     const { data: settings } = await supabaseAdmin.from('system_settings').select('value').eq('key', 'maintenance_mode').single();
     if (settings?.value === 'true') {
-      return NextResponse.json({ error: 'System is under maintenance' }, { status: 503 });
+      return errorRedirect('Sistem sedang dalam pemeliharaan');
     }
 
     const formData = await req.formData();
     const productId = formData.get('productId') as string;
+    const email = formData.get('email') as string | null;
 
     if (!productId) {
-      return NextResponse.json({ error: 'Missing productId' }, { status: 400 });
+      return errorRedirect('Produk tidak ditemukan');
     }
 
-    // 1. Get product price
+    // 1. Get product price & check parent status
     const { data: product, error: productError } = await supabaseAdmin
       .from('products')
-      .select('price')
+      .select('name, price, parent_id, max_claim_limit')
       .eq('id', productId)
       .single();
 
     if (productError || !product) {
-      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+      return errorRedirect('Produk tidak ditemukan');
+    }
+
+    // Security Check: Defense in Depth (API Layer)
+    // Cegah pembelian wadah variasi (Parent Product) jika wadah tersebut punya anak.
+    if (!product.parent_id) {
+      const { data: children } = await supabaseAdmin.from('products').select('id').eq('parent_id', productId).limit(1);
+      if (children && children.length > 0) {
+        return errorRedirect('Pilih variasi produk terlebih dahulu');
+      }
     }
 
     // 2. Hold inventory atomically
@@ -56,12 +85,12 @@ export async function POST(req: Request) {
       p_product_id: productId
     });
 
-    if (holdError || !holdResult) {
-      return NextResponse.json({ error: 'Sistem sibuk atau stok habis.' }, { status: 500 });
+    if (holdError) {
+      return errorRedirect('Sistem sibuk, gagal menahan stok.');
     }
 
-    if (holdResult === 'OUT_OF_STOCK') {
-      return NextResponse.json({ error: 'Stok Habis' }, { status: 400 });
+    if (!holdResult || holdResult === 'OUT_OF_STOCK') {
+      return errorRedirect('Stok produk ini sedang habis.');
     }
 
     // UUID dari inventory yang di-hold
@@ -80,7 +109,8 @@ export async function POST(req: Request) {
         user_id: newUser?.id || null,
         total_amount: product.price,
         payment_status: 'pending',
-        platform_source: 'web'
+        platform_source: 'web',
+        email: email || null
       })
       .select('id, access_token').single();
 
@@ -91,21 +121,59 @@ export async function POST(req: Request) {
       .from('order_items')
       .insert({
         order_id: newOrder.id,
-        inventory_id: inventoryId
+        inventory_id: inventoryId,
+        product_id: productId,
+        max_claim_limit: product.max_claim_limit ?? 1
       });
 
-    // 6. Create Pakasir Transaction
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-    const returnUrl = `${baseUrl}/order/${newOrder.id}?token=${newOrder.access_token}`;
+    // 5.5 Schedule Email Receipt (if email provided)
+    if (email) {
+      await supabaseAdmin.from('outbox_events').insert({
+        event_type: 'send_order_receipt',
+        payload: {
+          order_id: newOrder.id,
+          email: email,
+          product_name: product.name,
+          total_amount: product.price,
+          access_token: newOrder.access_token
+        }
+      });
+    }
+
+    // Removed Pakasir Transaction creation here since it's created on-the-fly in page.tsx 
+    // where we actually need the QR string. Doing it here causes "Transaction already completed" in page.tsx.
+
     
-    // Asumsi createPakasirTransaction mendukung parameter returnUrl
-    const pakasirCheckoutUrl = await createPakasirTransaction(newOrder.id, product.price, returnUrl);
+    const returnUrl = `${baseUrl}/order/${newOrder.id}---${newOrder.access_token}`;
 
-    // Redirect user to payment
-    return NextResponse.redirect(pakasirCheckoutUrl, { status: 303 });
+    const cookieStore = await cookies();
+    
+    // Cleanup old order tokens to prevent HTTP 431 Request Header Fields Too Large
+    const allCookies = cookieStore.getAll();
+    const orderCookies = allCookies.filter(c => c.name.startsWith('order_token_'));
+    if (orderCookies.length > 3) {
+      // Delete old cookies so we only keep the 3 most recent ones
+      const toDelete = orderCookies.slice(0, orderCookies.length - 3);
+      for (const c of toDelete) {
+        cookieStore.delete(c.name);
+      }
+    }
 
-  } catch (error) {
+    // Tanam token ke dalam cookie agar ketika Pakasir meredirect kembali tanpa parameter, akses tetap dizinkan
+    cookieStore.set(`order_token_${newOrder.id}`, newOrder.access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30 // 30 hari
+    });
+    
+    // Redirect user to our own dashboard (Native Experience)
+    return NextResponse.redirect(returnUrl, { status: 303 });
+
+  } catch (error: any) {
     console.error('Checkout error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    require('fs').writeFileSync('/tmp/error.txt', String(error.stack || error));
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
 }

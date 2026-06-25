@@ -1,0 +1,22 @@
+◇ injected env (13) from .env // tip: ⌘ suppress logs { quiet: true }
+/root/yimstore-tele-web/node_modules/pg-connection-string/index.js:36
+    throw err
+    ^
+
+TypeError: Invalid URL
+    at new URL (node:internal/url:818:25)
+    at parse (/root/yimstore-tele-web/node_modules/pg-connection-string/index.js:30:16)
+    at new ConnectionParameters (/root/yimstore-tele-web/node_modules/pg/lib/connection-parameters.js:60:42)
+    at new Client (/root/yimstore-tele-web/node_modules/pg/lib/client.js:54:33)
+    at [eval]:4:16
+    at runScriptInThisContext (node:internal/vm:209:10)
+    at node:internal/process/execution:446:12
+    at [eval]-wrapper:6:24
+    at runScriptInContext (node:internal/process/execution:444:60)
+    at evalFunction (node:internal/process/execution:279:30) {
+  code: 'ERR_INVALID_URL',
+  input: '*****REDACTED*****',
+  base: 'postgres://base'
+}
+
+Node.js v22.22.3
