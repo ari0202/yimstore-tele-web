@@ -1,1 +1,62 @@
-{"error":"timeout","message":"Preview audit is taking longer than expected. Try `commitshow status <repo>` in a minute.","target":"https://github.com/ari0202/yimstore-tele-web"}
+{
+  "schema_version": "1",
+  "generated_at": "2026-06-25T08:25:46.820Z",
+  "project": {
+    "id": "b60bbb96-467e-4291-a755-9eade56ead00",
+    "name": "yimstore-tele-web",
+    "github_url": "https://github.com/ari0202/yimstore-tele-web",
+    "live_url": null,
+    "status": "preview",
+    "creator": {
+      "name": null,
+      "grade": "Rookie"
+    },
+    "url": "https://commit.show/projects/b60bbb96-467e-4291-a755-9eade56ead00"
+  },
+  "score": {
+    "track": "walk_on",
+    "total": 13,
+    "total_max": 100,
+    "audit": 0,
+    "audit_max": 50,
+    "scout": 0,
+    "scout_max": 30,
+    "community": 1,
+    "community_max": 20,
+    "delta_since_last": 0,
+    "band": "weak",
+    "walk_on_total": 13,
+    "walk_on_band": "weak",
+    "walk_on_audit_normalized": 0
+  },
+  "standing": null,
+  "strengths": [
+    {
+      "axis": "Security",
+      "bullet": "RLS gap closed this round — 11 policies across 13 tables, gap_estimate now 0, all write surfaces covered."
+    },
+    {
+      "axis": "Infrastructure",
+      "bullet": "34 SQL files with 83,978 bytes of PLpgSQL — serious schema investment including RPC functions and inventory hierarchy."
+    },
+    {
+      "axis": "Code",
+      "bullet": "74.6% TypeScript across 379 files; 37 package deps including @upstash/ratelimit and Supabase auth libraries."
+    }
+  ],
+  "concerns": [
+    {
+      "axis": "Infrastructure",
+      "bullet": "49 FK columns, only 4 indexes — gap_estimate=25; p_order_id, p_user_id, v_inventory_id all unindexed per fix_rpc.sql and rpc_dump.sql."
+    },
+    {
+      "axis": "Security",
+      "bullet": "Webhook idempotency missing on both handlers (route.ts + telegram/route.ts); retry storms will create duplicate records."
+    }
+  ],
+  "snapshot": {
+    "id": "9f9f6fd8-4ff9-415b-8d96-ed2c1335bb96",
+    "created_at": "2026-06-25T08:25:44.810855+00:00",
+    "trigger_type": "resubmit"
+  }
+}

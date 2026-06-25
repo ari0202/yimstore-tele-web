@@ -4,20 +4,19 @@
 _https://github.com/ari0202/yimstore-tele-web_
 
 ## What this build missed
-- Both webhook handlers (route.ts + telegram/route.ts) have 0 signature checks — forged POST attacks possible.
-- 6 tables (admin_sessions, login_attempts, audit_logs, system_settings, categories, outbox_events) have no RLS policies.
+- 49 FK columns, only 4 indexes — gap_estimate=25; p_order_id, p_user_id, v_inventory_id all unindexed per fix_rpc.sql and rpc_dump.sql.
+- Webhook idempotency missing on both handlers (route.ts + telegram/route.ts); retry storms will create duplicate records.
 
 ## What it got right
-- 33 SQL files with 13 CREATE TABLE statements — real schema work, not scaffolding.
-- 10 RLS policies covering 7 of 13 tables; rls intent flag true, partial protection in place.
-- 74.6% TypeScript across 378 files — consistent type coverage for an early-stage app.
+- RLS gap closed this round — 11 policies across 13 tables, gap_estimate now 0, all write surfaces covered.
+- 34 SQL files with 83,978 bytes of PLpgSQL — serious schema investment including RPC functions and inventory hierarchy.
+- 74.6% TypeScript across 379 files; 37 package deps including @upstash/ratelimit and Supabase auth libraries.
 
 ## Score · 13 / 100
 
 - Audit:      0/50
 - Scout:      0/30
 - Community:  1/20
-- **Δ +5** since last audit
 
 ---
 Audited on commit.show · https://commit.show/projects/b60bbb96-467e-4291-a755-9eade56ead00
