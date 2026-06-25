@@ -52,10 +52,10 @@ export default function EditProductModal({ product, categories, updateAction }: 
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+          <div className="bg-[var(--color-surface-card)] rounded-xl shadow-xl w-full max-w-md overflow-hidden transition-colors">
             <div className="flex justify-between items-center p-4 border-b border-gray-100">
-              <h3 className="font-semibold text-lg text-gray-900">Edit Product</h3>
-              <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-gray-600">
+              <h3 className="font-semibold text-lg text-[var(--color-text-primary)]">Edit Product</h3>
+              <button onClick={() => setIsOpen(false)} className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]">
                 <X size={20} />
               </button>
             </div>

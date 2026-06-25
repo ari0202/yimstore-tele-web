@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:is(.dark *));
 
 @theme {
   /* Soft Structuralism Base Variables */
@@ -21,6 +22,22 @@
   color-scheme: light;
   --background: var(--color-surface-bg);
   --foreground: var(--color-text-primary);
+}
+
+.dark body {
+  color-scheme: dark;
+  --color-surface-bg: #09090b; 
+  --color-surface-card: #18181b; 
+  --color-surface-core: #27272a; 
+  
+  --color-text-primary: #fafafa; 
+  --color-text-secondary: #a1a1aa; 
+  --color-text-muted: #71717a; 
+  
+  --color-action-primary: #3b82f6; 
+  --color-action-hover: #2563eb; 
+  
+  --color-border-soft: #27272a; 
 }
 
 body {

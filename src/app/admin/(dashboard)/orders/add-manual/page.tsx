@@ -16,12 +16,12 @@ export default async function AddManualOrderPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/admin/orders" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-          <ArrowLeft size={20} className="text-gray-600" />
+        <Link href="/admin/orders" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+          <ArrowLeft size={20} className="text-gray-600 dark:text-gray-400" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Tambah Pesanan Manual</h1>
-          <p className="text-gray-500 text-sm mt-1">Buat pesanan untuk pembeli lama agar mereka bisa mengakses klaim garansi otomatis.</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Tambah Pesanan Manual</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Buat pesanan untuk pembeli lama agar mereka bisa mengakses klaim garansi otomatis.</p>
         </div>
       </div>
 

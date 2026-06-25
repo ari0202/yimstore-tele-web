@@ -64,15 +64,15 @@ export default function ManualOrderForm({ products }: { products: any[] }) {
 
   if (successLink) {
     return (
-      <div className="bg-white border rounded-xl shadow-sm p-8 text-center max-w-2xl mx-auto mt-10">
-        <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+      <div className="bg-white dark:bg-gray-900 border dark:border-gray-800 rounded-xl shadow-sm p-8 text-center max-w-2xl mx-auto mt-10 transition-colors">
+        <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mx-auto mb-4">
           <CheckCircle2 size={32} />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Pesanan Manual Berhasil Dibuat!</h2>
-        <p className="text-gray-600 mb-8">Berikan tautan di bawah ini kepada pembeli agar mereka bisa mengklaim garansinya sendiri.</p>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Pesanan Manual Berhasil Dibuat!</h2>
+        <p className="text-gray-600 dark:text-gray-400 mb-8">Berikan tautan di bawah ini kepada pembeli agar mereka bisa mengklaim garansinya sendiri.</p>
         
-        <div className="bg-gray-50 border rounded-lg p-4 mb-6 flex flex-col items-center gap-4">
-          <code className="text-sm text-gray-800 break-all">{successLink}</code>
+        <div className="bg-gray-50 dark:bg-gray-800 border dark:border-gray-700 rounded-lg p-4 mb-6 flex flex-col items-center gap-4">
+          <code className="text-sm text-gray-800 dark:text-gray-200 break-all">{successLink}</code>
           <button 
             onClick={copyToClipboard}
             className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors ${
@@ -98,20 +98,20 @@ export default function ManualOrderForm({ products }: { products: any[] }) {
   }
 
   return (
-    <div className="bg-white border rounded-xl shadow-sm overflow-hidden max-w-2xl">
+    <div className="bg-white dark:bg-gray-900 border dark:border-gray-800 rounded-xl shadow-sm overflow-hidden max-w-2xl transition-colors">
       <form onSubmit={handleSubmit} className="p-6 space-y-6">
         {errorMsg && (
-          <div className="p-4 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm">
+          <div className="p-4 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg text-sm">
             {errorMsg}
           </div>
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Produk yang Dibeli</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Produk yang Dibeli</label>
           <select 
             value={productId}
             onChange={(e) => setProductId(e.target.value)}
-            className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white px-4 py-2 border"
+            className="w-full border-gray-300 dark:border-gray-700 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-2 border outline-none"
             required
           >
             {products.map(p => (
@@ -121,48 +121,48 @@ export default function ManualOrderForm({ products }: { products: any[] }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Pembelian Asli</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tanggal Pembelian Asli</label>
           <input 
             type="date"
             value={purchaseDate}
             onChange={(e) => setPurchaseDate(e.target.value)}
-            className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 px-4 py-2 border"
+            className="w-full border-gray-300 dark:border-gray-700 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-transparent text-gray-900 dark:text-gray-100 px-4 py-2 border outline-none"
             required
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Masa Garansi (Hari)</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Masa Garansi (Hari)</label>
             <input 
               type="number"
               min="0"
               value={warrantyDays}
               onChange={(e) => setWarrantyDays(Number(e.target.value))}
-              className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 px-4 py-2 border"
+              className="w-full border-gray-300 dark:border-gray-700 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-transparent text-gray-900 dark:text-gray-100 px-4 py-2 border outline-none"
               required
             />
-            <p className="text-xs text-gray-500 mt-1">Sistem akan otomatis menghitung tanggal kedaluwarsa.</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Sistem akan otomatis menghitung tanggal kedaluwarsa.</p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Sisa Jatah Klaim</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sisa Jatah Klaim</label>
             <input 
               type="number"
               min="0"
               value={remainingClaims}
               onChange={(e) => setRemainingClaims(Number(e.target.value))}
-              className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 px-4 py-2 border"
+              className="w-full border-gray-300 dark:border-gray-700 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-transparent text-gray-900 dark:text-gray-100 px-4 py-2 border outline-none"
               required
             />
-            <p className="text-xs text-gray-500 mt-1">Berapa kali lagi pembeli ini boleh mengklaim.</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Berapa kali lagi pembeli ini boleh mengklaim.</p>
           </div>
         </div>
 
-        <div className="pt-4 flex justify-end gap-3 border-t">
+        <div className="pt-4 flex justify-end gap-3 border-t dark:border-gray-800">
           <button 
             type="button"
             onClick={() => router.push('/admin/orders')}
-            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 font-medium"
+            className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 font-medium transition-colors"
           >
             Batal
           </button>
