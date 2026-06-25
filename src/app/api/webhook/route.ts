@@ -12,9 +12,22 @@ export async function POST(req: Request) {
   const apiKey = process.env.PAKASIR_API_KEY || process.env.PAKASIR_SECRET || process.env.PAKASIR_TEST_SECRET;
   const projectSlug = process.env.PAKASIR_PROJECT_SLUG;
   
-  if (payload.api_key && payload.api_key !== apiKey) {
-    console.error("⚠️ Webhook ditolak: API Key tidak cocok!");
-    return NextResponse.json({ error: 'Invalid API Key' }, { status: 401 });
+  // HMAC Signature Verification
+  const signature = req.headers.get('x-signature') || req.headers.get('x-pakasir-signature');
+  if (signature) {
+    const expectedSignature = crypto.createHmac('sha256', apiKey || '')
+      .update(Buffer.from(rawBody))
+      .digest('hex');
+    if (signature !== expectedSignature) {
+      console.error("⚠️ Webhook ditolak: HMAC Signature tidak cocok!");
+      return NextResponse.json({ error: 'Invalid Signature' }, { status: 401 });
+    }
+  } else {
+    // Fallback if no signature header is provided
+    if (!payload.api_key || payload.api_key !== apiKey) {
+      console.error("⚠️ Webhook ditolak: API Key tidak cocok!");
+      return NextResponse.json({ error: 'Invalid API Key' }, { status: 401 });
+    }
   }
   if (payload.project && payload.project !== projectSlug) {
     console.error("⚠️ Webhook ditolak: Project Slug tidak cocok!");
