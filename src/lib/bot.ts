@@ -488,9 +488,9 @@ bot.hears(/Best Seller/i, (ctx) => ctx.reply('Fitur Best Seller akan segera hadi
 bot.hears(/Bantuan/i, async (ctx) => {
   const tpl = await getTemplate('help_center');
   const keyboard = new InlineKeyboard()
-    .text('Pertanyaan Umum (FAQ)', 'help_faq').row()
-    .text('Cara Pemesanan', 'help_order').row()
-    .text('Kebijakan Garansi', 'help_warranty').row();
+    .text('🛒 Cara Order', 'help_how_to_order').row()
+    .text('🛡️ Cara Claim Garansi', 'help_claim_warranty').row()
+    .url('💬 Hubungi Admin', 'https://t.me/YimDigital');
   return ctx.reply(tpl || 'Pusat Bantuan YimStore.\nSilakan pilih topik bantuan yang Anda butuhkan di bawah ini:', { reply_markup: keyboard, parse_mode: tpl ? 'HTML' : undefined });
 });
 
