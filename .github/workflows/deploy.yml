@@ -1,0 +1,56 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Sesuaikan dengan versi Node.js yang Anda gunakan
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Application
+        run: npm run build
+        
+      - name: Prepare Deployment Artifacts
+        run: |
+          mkdir -p .next/standalone/.next/static
+          mkdir -p .next/standalone/public
+          cp -r .next/static/* .next/standalone/.next/static/ 2>/dev/null || true
+          cp -r public/* .next/standalone/public/ 2>/dev/null || true
+          cp ecosystem.config.js .next/standalone/
+
+      - name: Deploy to VPS via Rsync
+        uses: Pendect/action-rsyncer@v2.0.0
+        env:
+          DEPLOY_KEY: ${{ secrets.VPS_SSH_KEY }}
+        with:
+          flags: '-avz --delete'
+          options: ''
+          ssh_options: '-p ${{ secrets.VPS_PORT || 22 }}'
+          src: '.next/standalone/'
+          dest: '${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/yimstore-tele-web/'
+
+      - name: Restart PM2 Application
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            cd /var/www/yimstore-tele-web
+            pm2 restart ecosystem.config.js || pm2 start ecosystem.config.js
+            pm2 save
