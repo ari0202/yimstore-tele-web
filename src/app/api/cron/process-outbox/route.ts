@@ -5,6 +5,10 @@ import { Resend } from 'resend';
 
 export async function POST(req: Request) {
     const authHeader = req.headers.get('authorization');
+    console.log('--- process-outbox hit ---', {
+        userAgent: req.headers.get('user-agent'),
+        authHeader
+    });
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

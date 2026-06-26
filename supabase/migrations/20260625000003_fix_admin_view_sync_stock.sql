@@ -1,6 +1,7 @@
 -- supabase/migrations/20260625000003_fix_admin_view_sync_stock.sql
 
 DROP VIEW IF EXISTS public.admin_product_summary_view;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS is_sync_stock BOOLEAN DEFAULT FALSE;
 CREATE OR REPLACE VIEW public.admin_product_summary_view AS
 SELECT p.id,
     p.name,
