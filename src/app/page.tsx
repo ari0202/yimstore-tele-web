@@ -13,7 +13,6 @@ export default async function CatalogPage({ searchParams }: { searchParams: { er
     .from('categories')
     .select(`
       id, name, description, thumbnail_url,
-      inventory(status),
       variations:products(
         id, name, price, warranty_days, max_claim_limit, is_archived, is_sync_stock, inventory(status)
       )
@@ -21,22 +20,15 @@ export default async function CatalogPage({ searchParams }: { searchParams: { er
 
   const products = rawCategories?.map((c: any) => {
     // Process variations (products)
-    const categoryInventory = c.inventory?.filter((i: any) => i.status === 'Available').length || 0;
 
     const activeVariations = c.variations
       ?.filter((v: any) => !v.is_archived)
       .map((v: any) => ({
         ...v,
-        stock: v.is_sync_stock 
-          ? categoryInventory 
-          : (v.inventory?.filter((i: any) => i.status === 'Available').length || 0)
+        stock: v.inventory?.filter((i: any) => i.status === 'Available').length || 0
       })) || [];
 
-    // Determine if any variation uses category sync stock
-    const usesSyncStock = activeVariations.some((v: any) => v.is_sync_stock);
-    const totalStock = usesSyncStock 
-      ? categoryInventory 
-      : activeVariations.reduce((sum: number, v: any) => sum + (v.stock || 0), 0);
+    const totalStock = activeVariations.reduce((sum: number, v: any) => sum + (v.stock || 0), 0);
     const minPrice = activeVariations.length > 0 ? Math.min(...activeVariations.map((v: any) => v.price)) : 0;
     const minWarranty = activeVariations.length > 0 ? Math.min(...activeVariations.map((v: any) => v.warranty_days)) : 0;
     const minMaxClaim = activeVariations.length > 0 ? Math.min(...activeVariations.map((v: any) => v.max_claim_limit)) : 0;
