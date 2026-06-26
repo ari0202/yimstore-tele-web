@@ -10,7 +10,7 @@ module.exports = {
       max_memory_restart: '1G',
       env: {
         NODE_ENV: 'production',
-        PORT: 3000,
+        PORT: 3001,
         // Pastikan file .env ada di dalam direktori VPS (/var/www/yimstore-tele-web/.env)
         // Environment variables tambahan akan dimuat dari file .env tersebut
       }
