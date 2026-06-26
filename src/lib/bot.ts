@@ -26,35 +26,67 @@ if (process.env.APP_ENV === 'test') {
 export const adminEditStates = new Map<number, string>();
 
 export function parseTelegramToHtml(text: string, entities: any[]): string {
-  if (!entities || entities.length === 0) return text;
   let html = text;
-  // Sort entities by offset descending so modifying string doesn't mess up earlier offsets
-  const sorted = [...entities].sort((a, b) => b.offset - a.offset);
-  for (const ent of sorted) {
-    const { offset, length, type, custom_emoji_id, url } = ent;
-    const content = html.substring(offset, offset + length);
-    let replaced = content;
-    
-    if (type === 'custom_emoji') {
-      replaced = `<tg-emoji emoji-id="${custom_emoji_id}">${content}</tg-emoji>`;
-    } else if (type === 'bold') {
-      replaced = `<b>${content}</b>`;
-    } else if (type === 'italic') {
-      replaced = `<i>${content}</i>`;
-    } else if (type === 'underline') {
-      replaced = `<u>${content}</u>`;
-    } else if (type === 'strikethrough') {
-      replaced = `<s>${content}</s>`;
-    } else if (type === 'code') {
-      replaced = `<code>${content}</code>`;
-    } else if (type === 'pre') {
-      replaced = `<pre>${content}</pre>`;
-    } else if (type === 'text_link') {
-      replaced = `<a href="${url}">${content}</a>`;
+  
+  // 1. Process Telegram entities correctly using UTF-16 code units
+  if (entities && entities.length > 0) {
+    // Arrays to hold tags to insert at each index
+    const openTags: string[][] = Array.from({ length: text.length + 1 }, () => []);
+    const closeTags: string[][] = Array.from({ length: text.length + 1 }, () => []);
+
+    for (const ent of entities) {
+      const { offset, length, type, custom_emoji_id, url } = ent;
+      let open = '';
+      let close = '';
+      
+      if (type === 'custom_emoji') {
+        open = `<tg-emoji emoji-id="${custom_emoji_id}">`;
+        close = `</tg-emoji>`;
+      } else if (type === 'bold') {
+        open = `<b>`; close = `</b>`;
+      } else if (type === 'italic') {
+        open = `<i>`; close = `</i>`;
+      } else if (type === 'underline') {
+        open = `<u>`; close = `</u>`;
+      } else if (type === 'strikethrough') {
+        open = `<s>`; close = `</s>`;
+      } else if (type === 'code') {
+        open = `<code>`; close = `</code>`;
+      } else if (type === 'pre') {
+        open = `<pre>`; close = `</pre>`;
+      } else if (type === 'text_link') {
+        open = `<a href="${url}">`; close = `</a>`;
+      }
+
+      if (open) {
+        // Open tags are added at the offset (prepend so wider entities wrap inner ones)
+        openTags[offset].unshift(open);
+        // Close tags are added at offset + length (append so wider entities close last)
+        closeTags[offset + length].push(close);
+      }
     }
+
+    let result = '';
+    for (let i = 0; i < text.length; i++) {
+      result += closeTags[i].join('');
+      result += openTags[i].join('');
+      result += text[i];
+    }
+    result += closeTags[text.length].join('');
+    result += openTags[text.length].join('');
     
-    html = html.substring(0, offset) + replaced + html.substring(offset + length);
+    html = result;
   }
+
+  // 2. Convert raw Markdown typed by user (which has no entities) into HTML
+  html = html.replace(/(?<!\\)\*(.*?)(?<!\\)\*/g, '<b>$1</b>');
+  html = html.replace(/(?<![\\A-Za-z0-9])_(.*?)(?<!\\)_(?![A-Za-z0-9])/g, '<i>$1</i>');
+  html = html.replace(/(?<!\\)~(.*?)(?<!\\)~/g, '<s>$1</s>');
+  html = html.replace(/(?<!\\)`(.*?)`/g, '<code>$1</code>');
+
+  // 3. Unescape MarkdownV2 escape characters
+  html = html.replace(/\\([.\-!+()={}\[\]~`>#|])/g, '$1');
+
   return html;
 }
 
@@ -120,19 +152,14 @@ async function renderKatalog(ctx: any, isEdit: boolean = false) {
     return isEdit ? ctx.editMessageText(text) : ctx.reply(text);
   }
 
-  let message = '〔 KATALOG PRODUK YIMSTORE 〕\n';
-  message += '╭────────────────────────\n';
-  message += `┊ Total Produk: ${categories.length}\n`;
-  message += `┊ Halaman 1/1\n`;
-  message += `┊ -----------------------\n`;
-
   const keyboard = new InlineKeyboard();
   let rowCount = 0;
+  let catalog_list = '';
 
   categories.forEach((cat: any, index: number) => {
     const num = index + 1;
     const catStock = stockMap[cat.id] || 0;
-    message += `┊ [ ${num} ] ${cat.name.toUpperCase()} (${catStock})\n`;
+    catalog_list += `┊ [ ${num} ] ${cat.name.toUpperCase()} (${catStock})\n`;
     keyboard.text(`${num}`, `cat_${cat.id}`);
     
     rowCount++;
@@ -142,13 +169,17 @@ async function renderKatalog(ctx: any, isEdit: boolean = false) {
     }
   });
 
-  message += '╰────────────────────────\n\n';
-  message += 'Pilih nomor yang ada di bawah untuk melihat variasi produk:';
+  const tpl = await getTemplate('katalog_main', {
+    total_categories: categories.length,
+    catalog_list: catalog_list.trimEnd()
+  });
+
+  const finalMessage = tpl || `〔 KATALOG PRODUK YIMSTORE 〕\n╭────────────────────────\n┊ Total Produk: ${categories.length}\n┊ Halaman 1/1\n┊ -----------------------\n${catalog_list}╰────────────────────────\n\nPilih nomor yang ada di bawah untuk melihat variasi produk:`;
 
   if (isEdit) {
-    return ctx.editMessageText(message, { reply_markup: keyboard }).catch(() => {});
+    return ctx.editMessageText(finalMessage, { reply_markup: keyboard, parse_mode: tpl ? 'HTML' : undefined }).catch(() => {});
   } else {
-    return ctx.reply(message, { reply_markup: keyboard });
+    return ctx.reply(finalMessage, { reply_markup: keyboard, parse_mode: tpl ? 'HTML' : undefined });
   }
 }
 
@@ -174,23 +205,27 @@ bot.callbackQuery(/^cat_(.+)$/, async (ctx) => {
     return ctx.answerCallbackQuery({ text: 'Tidak ada variasi untuk produk ini.', show_alert: true });
   }
 
-  let message = 'Pilih Variasi Produk:\n\n';
+  let variation_list = '';
   const keyboard = new InlineKeyboard();
 
   products.forEach((prod: any, index: number) => {
     const num = index + 1;
-    message += `┊ [ ${num} ] ${prod.name} (Stok: ${prod.total_stock || 0})\n`;
+    variation_list += `┊ [ ${num} ] ${prod.name} (Stok: ${prod.total_stock || 0})\n`;
     keyboard.text(num.toString(), `detail_${prod.id}`);
   });
   
-  message += '\nSilakan pilih nomor di bawah ini:';
-  
   keyboard.row().text('⬅️ Kembali ke Katalog', 'katalog_main');
 
+  const tpl = await getTemplate('katalog_variations', {
+    variation_list: variation_list.trimEnd()
+  });
+
+  const finalMessage = tpl || `Pilih Variasi Produk:\n\n${variation_list}\nSilakan pilih nomor di bawah ini:`;
+
   try {
-    await ctx.editMessageText(message, { reply_markup: keyboard });
+    await ctx.editMessageText(finalMessage, { reply_markup: keyboard, parse_mode: tpl ? 'HTML' : undefined });
   } catch (e) {
-    await ctx.reply(message, { reply_markup: keyboard });
+    await ctx.reply(finalMessage, { reply_markup: keyboard, parse_mode: tpl ? 'HTML' : undefined });
   }
   await ctx.answerCallbackQuery();
 });
@@ -217,14 +252,6 @@ bot.callbackQuery(/^detail_(.+)$/, async (ctx) => {
     restokText = diffDays === 0 ? 'Hari ini' : `${diffDays} hari yang lalu`;
   }
   
-  let message = `╭─〔 ${product.name.toUpperCase()} 〕───\n`;
-  message += `🔄 Restok: ${restokText}\n`;
-  message += `💵 Harga: Rp${product.base_price.toLocaleString('id-ID')}\n`;
-  message += `📦 Stok: ${availableStock}\n`;
-  message += `📉 Terjual: ${soldStock}\n`;
-  message += `📄 Deskripsi: ${product.description || '-'}\n`;
-  message += `╰────────────────────────\n\n`;
-  
   // Calculate estimated QRIS fee based on Pakasir rule
   let estimatedFee = 0;
   if (product.base_price <= 105000) {
@@ -236,13 +263,16 @@ bot.callbackQuery(/^detail_(.+)$/, async (ctx) => {
 
   const tpl = await getTemplate('order_confirmation', {
     product_name: product.name,
+    restok_text: restokText,
     base_price: product.base_price.toLocaleString('id-ID'),
     available_stock: availableStock,
+    sold_stock: soldStock,
+    description: product.description || '-',
     fee_payment: estimatedFee.toLocaleString('id-ID'),
     total_payment: estimatedTotal.toLocaleString('id-ID')
   });
 
-  const finalMessage = tpl ? message + tpl : message + `KONFIRMASI PESANAN\n=========================\nProduk: ${product.name}\nHarga: Rp ${product.base_price.toLocaleString('id-ID')} / item\nStok Tersedia: ${availableStock}\n-------------------------\nJumlah Pesanan: 1\nFee Payment: Rp ${estimatedFee.toLocaleString('id-ID')} (QRIS)\nTotal Dibayar: Rp ${estimatedTotal.toLocaleString('id-ID')}\n=========================\nKlik ✅ Konfirmasi untuk menahan stok dan melakukan pembayaran.`;
+  const finalMessage = tpl || `╭─〔 ${product.name.toUpperCase()} 〕───\n🔄 Restok: ${restokText}\n💵 Harga: Rp${product.base_price.toLocaleString('id-ID')}\n📦 Stok: ${availableStock}\n📉 Terjual: ${soldStock}\n📄 Deskripsi: ${product.description || '-'}\n╰────────────────────────\n\nKONFIRMASI PESANAN\n=========================\nProduk: ${product.name}\nHarga: Rp ${product.base_price.toLocaleString('id-ID')} / item\nStok Tersedia: ${availableStock}\n-------------------------\nJumlah Pesanan: 1\nFee Payment: Rp ${estimatedFee.toLocaleString('id-ID')} (QRIS)\nTotal Dibayar: Rp ${estimatedTotal.toLocaleString('id-ID')}\n=========================\nKlik ✅ Konfirmasi untuk menahan stok dan melakukan pembayaran.`;
   
   const keyboard = new InlineKeyboard()
     .text('⬅️ Kembali', `cat_${product.category_id}`)
@@ -264,7 +294,8 @@ async function showOrderList(ctx: any, chatId: string) {
     .single();
 
   if (!user) {
-    return ctx.reply('Anda belum memiliki pesanan yang terhubung dengan akun Telegram ini.');
+    const tpl = await getTemplate('order_history_empty');
+    return ctx.reply(tpl || 'Anda belum memiliki pesanan yang terhubung dengan akun Telegram ini.', { parse_mode: tpl ? 'HTML' : undefined });
   }
 
   const { data: allOrders } = await supabaseAdmin
@@ -281,10 +312,12 @@ async function showOrderList(ctx: any, chatId: string) {
   }) || [];
 
   if (!orders || orders.length === 0) {
+    const tpl = await getTemplate('order_history_empty');
+    const msg = tpl || 'Belum ada riwayat pesanan aktif.';
     if (ctx.callbackQuery) {
-      return ctx.editMessageText('Belum ada riwayat pesanan aktif.');
+      return ctx.editMessageText(msg, { parse_mode: tpl ? 'HTML' : undefined });
     }
-    return ctx.reply('Belum ada riwayat pesanan aktif.');
+    return ctx.reply(msg, { parse_mode: tpl ? 'HTML' : undefined });
   }
 
   let text = 'ID Pesanan Anda (Sesuaikan):\n\n';
@@ -342,11 +375,11 @@ bot.callbackQuery(/^edit_tpl_(.+)$/, async (ctx) => {
   const chatId = parseInt(chatIdStr);
   adminEditStates.set(chatId, key);
 
-  let instructions = `Anda sedang mengedit template: *${tpl.name}*\n\n`;
-  instructions += `_Variabel yang didukung:_ ${tpl.variables_hint || '-'}\n\n`;
+  let instructions = `Anda sedang mengedit template: <b>${tpl.name}</b>\n\n`;
+  instructions += `<i>Variabel yang didukung:</i> <code>${tpl.variables_hint || '-'}</code>\n\n`;
   instructions += `Silakan copy teks pesan di bawah ini, sisipkan Emoji Premium Anda, lalu kirim kembali pesan tersebut ke bot ini.`;
 
-  await ctx.reply(instructions, { parse_mode: 'Markdown' });
+  await ctx.reply(instructions, { parse_mode: 'HTML' });
   await ctx.reply(tpl.content_html, { parse_mode: 'HTML' });
   
   ctx.answerCallbackQuery();
@@ -390,24 +423,48 @@ bot.hears('📄 Riwayat Transaksi', async (ctx) => {
 });
 bot.hears('Saldo : Rp 0', (ctx) => ctx.reply('Fitur Saldo akan segera hadir.'));
 bot.hears('✨ Best Seller', (ctx) => ctx.reply('Fitur Best Seller akan segera hadir.'));
-bot.hears('❓ Bantuan', (ctx) => {
+bot.hears('❓ Bantuan', async (ctx) => {
   const keyboard = new InlineKeyboard()
     .text('🛒 Cara Order', 'help_how_to_order').row()
     .text('🛡️ Cara Claim Garansi', 'help_claim_warranty').row()
     .url('💬 Hubungi Admin', 'https://t.me/YimDigital');
   
-  return ctx.reply('Pusat Bantuan YimStore.\nSilakan pilih topik bantuan yang Anda butuhkan di bawah ini:', { reply_markup: keyboard });
+  const tpl = await getTemplate('help_center');
+  return ctx.reply(tpl || 'Pusat Bantuan YimStore.\nSilakan pilih topik bantuan yang Anda butuhkan di bawah ini:', { reply_markup: keyboard, parse_mode: tpl ? 'HTML' : undefined });
+});
+
+bot.callbackQuery('menu_katalog', (ctx) => {
+  renderKatalog(ctx, false);
+  ctx.answerCallbackQuery();
+});
+
+bot.callbackQuery('menu_riwayat', async (ctx) => {
+  const chatId = ctx.chat?.id?.toString();
+  if (chatId) await showOrderList(ctx, chatId);
+  ctx.answerCallbackQuery();
+});
+
+bot.callbackQuery('menu_bantuan', async (ctx) => {
+  const keyboard = new InlineKeyboard()
+    .text('🛒 Cara Order', 'help_how_to_order').row()
+    .text('🛡️ Cara Claim Garansi', 'help_claim_warranty').row()
+    .url('💬 Hubungi Admin', 'https://t.me/YimDigital');
+  const tpl = await getTemplate('help_center');
+  await ctx.reply(tpl || 'Pusat Bantuan YimStore.\nSilakan pilih topik bantuan yang Anda butuhkan di bawah ini:', { reply_markup: keyboard, parse_mode: tpl ? 'HTML' : undefined });
+  ctx.answerCallbackQuery();
 });
 
 bot.callbackQuery('help_how_to_order', async (ctx) => {
-  const text = 'Cara Order:\n1. Klik "List Produk"\n2. Pilih produk dan variasi yang diinginkan\n3. Lakukan pembayaran via QRIS/VA\n4. Akun akan langsung dikirimkan ke chat ini secara instan.';
-  await ctx.reply(text);
+  const tpl = await getTemplate('help_how_to_order');
+  const text = tpl || 'Cara Order:\n1. Klik "List Produk"\n2. Pilih produk dan variasi yang diinginkan\n3. Lakukan pembayaran via QRIS/VA\n4. Akun akan langsung dikirimkan ke chat ini secara instan.';
+  await ctx.reply(text, { parse_mode: tpl ? 'HTML' : undefined });
   ctx.answerCallbackQuery();
 });
 
 bot.callbackQuery('help_claim_warranty', async (ctx) => {
-  const text = 'Cara Claim Garansi:\n1. Klik "Riwayat Transaksi"\n2. Pilih pesanan yang ingin Anda klaim\n3. Pastikan pesanan masih dalam masa garansi aktif\n4. Klik tombol "Klaim Garansi" dan akun pengganti akan langsung dikirimkan kepada Anda.';
-  await ctx.reply(text);
+  const tpl = await getTemplate('help_claim_warranty');
+  const text = tpl || 'Cara Claim Garansi:\n1. Klik "Riwayat Transaksi"\n2. Pilih pesanan yang ingin Anda klaim\n3. Pastikan pesanan masih dalam masa garansi aktif\n4. Klik tombol "Klaim Garansi" dan akun pengganti akan langsung dikirimkan kepada Anda.';
+  await ctx.reply(text, { parse_mode: tpl ? 'HTML' : undefined });
   ctx.answerCallbackQuery();
 });
 
@@ -428,7 +485,8 @@ bot.callbackQuery(/^view_order_(.+)$/, async (ctx) => {
 
   if (!order) return ctx.answerCallbackQuery({ text: 'Pesanan tidak ditemukan.', show_alert: true });
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const baseUrl = siteUrl.includes('localhost') ? 'https://yimdigital.store' : siteUrl;
   const orderItem = order.order_items?.[0];
   const productData = Array.isArray(orderItem?.products) ? orderItem.products[0] : orderItem?.products;
   const productName = productData?.name || 'Produk';
@@ -512,7 +570,8 @@ bot.callbackQuery(/^claim_(.+)$/, async (ctx) => {
   if (result?.success) {
     ctx.answerCallbackQuery({ text: 'Klaim berhasil diproses!', show_alert: true });
     // Also re-fetch order to show updated claims left? For now, just send the credential.
-    ctx.reply(`🎉 *Klaim Garansi Berhasil!*\n\nBerikut adalah detail akun pengganti Anda:\n\n\`${result.new_credential}\`\n\nSilakan simpan baik-baik.`, { parse_mode: 'Markdown' });
+    const tpl = await getTemplate('warranty_claim_success', { new_credential: result.new_credential });
+    ctx.reply(tpl || `🎉 *Klaim Garansi Berhasil!*\n\nBerikut adalah detail akun pengganti Anda:\n\n\`${result.new_credential}\`\n\nSilakan simpan baik-baik.`, { parse_mode: tpl ? 'HTML' : 'Markdown' });
   } else {
     ctx.answerCallbackQuery({ text: 'Gagal memproses klaim.', show_alert: true });
   }
@@ -586,7 +645,8 @@ bot.callbackQuery(/^buy_(.+)$/, async (ctx) => {
     }
 
     // F. Generate Pakasir Payment Link
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    const baseUrl = siteUrl.includes('localhost') ? 'https://yimdigital.store' : siteUrl;
     const returnUrl = `${baseUrl}/order/${newOrder.id}---${newOrder.access_token}`;
     
     // Call API to create transaction on Pakasir's side
@@ -694,17 +754,25 @@ bot.command('start', async (ctx) => {
     
     const welcomeText = tpl || `✨ *Selamat Datang di YimStore!* ✨\n\nPusat layanan digital dan akun premium terpercaya. Kami menyediakan berbagai macam kebutuhan digital dengan proses yang instan dan otomatis 24/7.\n\n📊 *Statistik Bot:*\n👥 Pengguna Aktif: ${userCount || 0} Pengguna\n🛍️ Transaksi Berhasil: ${orderCount || 0} Pesanan\n\nSilakan pilih menu di bawah ini untuk memulai:`;
     
+    const welcomeInlineKeyboard = new InlineKeyboard()
+      .text("🛒 Katalog Produk", "menu_katalog").row()
+      .text("📄 Riwayat Transaksi", "menu_riwayat")
+      .text("❓ Bantuan", "menu_bantuan");
+
     await ctx.reply(welcomeText, { 
-      parse_mode: tpl ? 'HTML' : 'Markdown', 
-      reply_markup: mainKeyboard 
+      parse_mode: 'HTML', 
+      reply_markup: welcomeInlineKeyboard 
     });
+
 
     // 4. Delete the loading message
     await ctx.api.deleteMessage(ctx.chat.id, msg.message_id).catch(() => {});
 
     const adminIds = (process.env.TELEGRAM_ADMIN_CHAT_ID || '').split(',');
     if (adminIds.includes(chatId)) {
-      const adminKeyboard = new InlineKeyboard().url('⚙️ Buka Dashboard Admin', `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/admin`);
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+      const safeAdminUrl = siteUrl.includes('localhost') ? 'https://yimdigital.store/admin' : `${siteUrl}/admin`;
+      const adminKeyboard = new InlineKeyboard().url('⚙️ Buka Dashboard Admin', safeAdminUrl);
       await ctx.reply('👋 *Halo Admin!*\n\nSilakan klik tombol di bawah ini untuk masuk ke Dashboard Web dan mengelola toko Anda.', { parse_mode: 'Markdown', reply_markup: adminKeyboard });
     }
     return;
@@ -789,7 +857,8 @@ bot.callbackQuery(/^cancel_(.+)$/, async (ctx) => {
     // Edit the message to show it was cancelled
     if (ctx.callbackQuery.message) {
       const keyboard = new InlineKeyboard().text('⬅️ Kembali ke Katalog', 'katalog_main');
-      await ctx.editMessageText('❌ *Pesanan Dibatalkan*\n\nTerima kasih, pesanan Anda telah berhasil dibatalkan dan stok telah dikembalikan.', { parse_mode: 'Markdown', reply_markup: keyboard }).catch(console.error);
+      const tpl = await getTemplate('order_cancelled');
+      await ctx.editMessageText(tpl || '❌ *Pesanan Dibatalkan*\n\nTerima kasih, pesanan Anda telah berhasil dibatalkan dan stok telah dikembalikan.', { parse_mode: tpl ? 'HTML' : 'Markdown', reply_markup: keyboard }).catch(console.error);
     }
 
     ctx.answerCallbackQuery({ text: 'Pesanan berhasil dibatalkan.' });
