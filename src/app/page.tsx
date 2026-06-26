@@ -4,6 +4,8 @@ import HeroSection from '@/components/ui/HeroSection';
 import ProductCard from '@/components/ui/ProductCard';
 import { Suspense } from 'react';
 
+export const dynamic = 'force-dynamic';
+
 export default async function CatalogPage({ searchParams }: { searchParams: { error?: string, q?: string } }) {
   const resolvedSearch = await searchParams;
   const searchQuery = resolvedSearch.q?.toLowerCase() || '';
