@@ -26,7 +26,7 @@ export default function TemplateForm({ tpl, updateTemplateAction }: any) {
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{tpl.name}</h2>
           <code className="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded">Key: {tpl.key}</code>
         </div>
-        <p className="text-xs text-gray-400">Last updated: {new Date(tpl.updated_at).toLocaleString('id-ID')}</p>
+        <p className="text-xs text-gray-400" suppressHydrationWarning>Last updated: {new Date(tpl.updated_at).toLocaleString('id-ID')}</p>
       </div>
 
       <div>
@@ -34,7 +34,7 @@ export default function TemplateForm({ tpl, updateTemplateAction }: any) {
         <textarea 
           name="content_html" 
           defaultValue={tpl.content_html} 
-          rows={8}
+          rows={4}
           className="w-full px-4 py-3 border dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm leading-relaxed" 
         />
       </div>

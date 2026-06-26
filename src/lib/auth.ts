@@ -50,6 +50,36 @@ export async function verifyAdminSession() {
     }
 }
 
+export async function verifyAdminAPI() {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('admin_session')?.value;
+
+    if (!token) {
+        return null;
+    }
+
+    try {
+        const { payload } = await jwtVerify(token, JWT_SECRET);
+        const { admin_id, session_id } = payload as { admin_id: string, session_id: string };
+
+        const { data: session, error } = await supabaseAdmin
+            .from('admin_sessions')
+            .select('id')
+            .eq('id', session_id)
+            .eq('admin_id', admin_id)
+            .gt('expires_at', new Date().toISOString())
+            .single();
+
+        if (error || !session) {
+            return null;
+        }
+
+        return { admin_id, session_id };
+    } catch (error) {
+        return null;
+    }
+}
+
 export async function logoutAdmin() {
     const cookieStore = await cookies();
     const token = cookieStore.get('admin_session')?.value;

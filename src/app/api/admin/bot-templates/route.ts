@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { verifyAdminAPI } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  const session = await verifyAdminAPI();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const { data, error } = await supabaseAdmin
       .from('bot_templates')
@@ -18,6 +24,11 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  const session = await verifyAdminAPI();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     const { id, content_html } = body;

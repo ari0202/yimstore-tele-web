@@ -22,6 +22,8 @@ export async function createVariation(parentId: string, formData: FormData) {
   const price = parseInt(formData.get('price') as string);
   const warranty_days = parseInt(formData.get('warranty_days') as string);
   const max_claim_limit = parseInt(formData.get('max_claim_limit') as string);
+  const cooldown_value = parseInt(formData.get('cooldown_value') as string) || 0;
+  const cooldown_unit = 'days';
 
   // Inherit properties from parent
   const { data: parent } = await supabaseAdmin.from('products').select('category_id, thumbnail_url, description').eq('id', parentId).single();
@@ -34,6 +36,8 @@ export async function createVariation(parentId: string, formData: FormData) {
       price,
       warranty_days,
       max_claim_limit,
+      cooldown_value,
+      cooldown_unit,
       category_id: parent?.category_id,
       thumbnail_url: parent?.thumbnail_url,
       description: parent?.description
@@ -73,12 +77,14 @@ export async function updateVariation(formData: FormData) {
   const price = parseInt(formData.get('price') as string);
   const warranty_days = parseInt(formData.get('warranty_days') as string);
   const max_claim_limit = parseInt(formData.get('max_claim_limit') as string);
+  const cooldown_value = parseInt(formData.get('cooldown_value') as string) || 0;
+  const cooldown_unit = 'days';
 
-  if (isNaN(price) || price < 0 || isNaN(warranty_days) || warranty_days < 0 || isNaN(max_claim_limit) || max_claim_limit < 0) {
+  if (isNaN(price) || price < 0 || isNaN(warranty_days) || warranty_days < 0 || isNaN(max_claim_limit) || max_claim_limit < 0 || isNaN(cooldown_value) || cooldown_value < 0) {
     throw new Error('Nilai numerik tidak valid. Pastikan semua angka lebih dari atau sama dengan 0.');
   }
 
-  await supabaseAdmin.from('products').update({ name, price, warranty_days, max_claim_limit }).eq('id', id);
+  await supabaseAdmin.from('products').update({ name, price, warranty_days, max_claim_limit, cooldown_value, cooldown_unit }).eq('id', id);
   revalidatePath('/admin/products');
 }
 
@@ -93,6 +99,8 @@ export async function createProductWithVariations(formData: FormData, variations
   const price = parseInt(formData.get('price') as string);
   const warranty_days = parseInt(formData.get('warranty_days') as string);
   const max_claim_limit = parseInt(formData.get('max_claim_limit') as string);
+  const cooldown_value = parseInt(formData.get('cooldown_value') as string) || 0;
+  const cooldown_unit = 'days';
 
   if (thumbnail_url && !thumbnail_url.startsWith('https://')) {
     throw new Error('Thumbnail URL must start with https:// for security reasons.');
@@ -108,7 +116,9 @@ export async function createProductWithVariations(formData: FormData, variations
       thumbnail_url,
       price,
       warranty_days,
-      max_claim_limit
+      max_claim_limit,
+      cooldown_value,
+      cooldown_unit
     })
     .select('id').single();
 

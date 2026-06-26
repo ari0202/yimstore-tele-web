@@ -3,14 +3,63 @@ import QRCode from 'qrcode';
 import { supabaseAdmin } from './supabase/admin';
 import { createPakasirTransaction } from './pakasir';
 
+import { limit } from '@grammyjs/ratelimiter';
+
 const botToken = process.env.TELEGRAM_BOT_TOKEN || '123456789:dummy_token_for_build';
 export const bot = new Bot(botToken);
 
-export const mainKeyboard = new Keyboard()
-  .text("🛒 List Produk").text("💰 Saldo : Rp 0").row()
-  .text("📄 Riwayat Transaksi").text("💬 Kontak Admin").row()
-  .text("✨ Best Seller").text("❓ Bantuan")
-  .resized();
+// Anti-Spam Rate Limiter: max 3 messages per 2 seconds per user
+bot.use(
+  limit({
+    timeFrame: 2000,
+    limit: 3,
+    onLimitExceeded: async (ctx) => {
+      try {
+        await ctx.reply('Mohon pelan-pelan, jangan spam ya! Tunggu beberapa detik.');
+      } catch (err) {
+        // Ignore if we can't even reply
+      }
+    },
+  })
+);
+
+let buttonLabelsCache: Record<string, string> | null = null;
+let buttonCacheTimeout: NodeJS.Timeout | null = null;
+
+export async function getButtonLabel(key: string, fallback: string): Promise<string> {
+  if (!buttonLabelsCache) {
+    const { data } = await supabaseAdmin.from('bot_templates').select('key, content_html').like('key', 'btn_%');
+    buttonLabelsCache = {};
+    if (data) {
+      data.forEach((row: any) => {
+        // Strip HTML tags like <tg-emoji> from button text because Telegram buttons don't support HTML
+        const cleanText = (row.content_html || '').replace(/<[^>]*>/g, '');
+        buttonLabelsCache![row.key] = cleanText;
+      });
+    }
+    // Cache for 60 seconds to allow Next.js dashboard updates to reflect quickly without heavy DB load
+    if (buttonCacheTimeout) clearTimeout(buttonCacheTimeout);
+    buttonCacheTimeout = setTimeout(() => { buttonLabelsCache = null; }, 60000);
+  }
+  return buttonLabelsCache[key] || fallback;
+}
+
+export async function getMainKeyboard() {
+  const [btnKatalog, btnSaldo, btnRiwayat, btnAdmin, btnBestseller, btnHelp] = await Promise.all([
+    getButtonLabel('btn_main_catalog', '🛒 List Produk'),
+    getButtonLabel('btn_main_balance', '💰 Saldo : Rp 0'),
+    getButtonLabel('btn_main_history', '📄 Riwayat Transaksi'),
+    getButtonLabel('btn_main_admin', '💬 Kontak Admin'),
+    getButtonLabel('btn_main_bestseller', '✨ Best Seller'),
+    getButtonLabel('btn_main_help', '❓ Bantuan')
+  ]);
+
+  return new Keyboard()
+    .text(btnKatalog).text(btnSaldo).row()
+    .text(btnRiwayat).text(btnAdmin).row()
+    .text(btnBestseller).text(btnHelp)
+    .resized();
+}
 
 // MOCK BYPASS FOR E2E TESTING
 if (process.env.APP_ENV === 'test') {
@@ -214,7 +263,8 @@ bot.callbackQuery(/^cat_(.+)$/, async (ctx) => {
     keyboard.text(num.toString(), `detail_${prod.id}`);
   });
   
-  keyboard.row().text('⬅️ Kembali ke Katalog', 'katalog_main');
+  const btnBack = await getButtonLabel('btn_back_catalog', '⬅️ Kembali ke Katalog');
+  keyboard.row().text(btnBack, 'katalog_main');
 
   const tpl = await getTemplate('katalog_variations', {
     variation_list: variation_list.trimEnd()
@@ -320,7 +370,7 @@ async function showOrderList(ctx: any, chatId: string) {
     return ctx.reply(msg, { parse_mode: tpl ? 'HTML' : undefined });
   }
 
-  let text = 'ID Pesanan Anda (Sesuaikan):\n\n';
+  let orderListText = '';
   const keyboard = new InlineKeyboard();
 
   orders.forEach((order: any, index: number) => {
@@ -330,14 +380,25 @@ async function showOrderList(ctx: any, chatId: string) {
     const shortId = `INV-${order.id.split('-')[0].toUpperCase()}`;
     const num = index + 1;
     
-    text += `${num}. ${productName} - ${shortId}\n`;
+    orderListText += `${num}. ${productName} - ${shortId}\n`;
     keyboard.text(num.toString(), `view_order_${order.id}`);
   });
 
-  if (ctx.callbackQuery && ctx.callbackQuery.message) {
-    return ctx.editMessageText(text, { reply_markup: keyboard });
+  const tpl = await getTemplate('order_history');
+  let text = '';
+  let parseMode = 'HTML';
+
+  if (tpl) {
+    text = tpl.replace(/{{order_list}}/g, orderListText);
   } else {
-    return ctx.reply(text, { reply_markup: keyboard });
+    parseMode = 'Markdown';
+    text = `*ID Pesanan Anda (Sesuaikan):*\n\n${orderListText}`;
+  }
+
+  if (ctx.callbackQuery && ctx.callbackQuery.message) {
+    return ctx.editMessageText(text, { reply_markup: keyboard, parse_mode: parseMode as any });
+  } else {
+    return ctx.reply(text, { reply_markup: keyboard, parse_mode: parseMode as any });
   }
 }
 
@@ -412,24 +473,24 @@ bot.command('cek_pesanan', async (ctx) => {
   await showOrderList(ctx, chatId);
 });
 
-bot.hears('🛒 List Produk', (ctx) => renderKatalog(ctx, false));
-bot.hears('💬 Kontak Admin', (ctx) => {
-  const keyboard = new InlineKeyboard().url('💬 Hubungi Admin', 'https://t.me/YimDigital');
+bot.hears(/List Produk/i, (ctx) => renderKatalog(ctx, false));
+bot.hears(/Kontak Admin/i, async (ctx) => {
+  const btnAdmin = await getButtonLabel('btn_main_admin', '💬 Hubungi Admin');
+  const keyboard = new InlineKeyboard().url(btnAdmin, 'https://t.me/YimDigital');
   return ctx.reply('Silakan klik tombol di bawah ini untuk menghubungi admin kami:', { reply_markup: keyboard });
 });
-bot.hears('📄 Riwayat Transaksi', async (ctx) => {
+bot.hears(/Riwayat Transaksi/i, async (ctx) => {
   const chatId = ctx.chat.id.toString();
   await showOrderList(ctx, chatId);
 });
-bot.hears('Saldo : Rp 0', (ctx) => ctx.reply('Fitur Saldo akan segera hadir.'));
-bot.hears('✨ Best Seller', (ctx) => ctx.reply('Fitur Best Seller akan segera hadir.'));
-bot.hears('❓ Bantuan', async (ctx) => {
-  const keyboard = new InlineKeyboard()
-    .text('🛒 Cara Order', 'help_how_to_order').row()
-    .text('🛡️ Cara Claim Garansi', 'help_claim_warranty').row()
-    .url('💬 Hubungi Admin', 'https://t.me/YimDigital');
-  
+bot.hears(/Saldo/i, (ctx) => ctx.reply('Fitur Saldo akan segera hadir.'));
+bot.hears(/Best Seller/i, (ctx) => ctx.reply('Fitur Best Seller akan segera hadir.'));
+bot.hears(/Bantuan/i, async (ctx) => {
   const tpl = await getTemplate('help_center');
+  const keyboard = new InlineKeyboard()
+    .text('Pertanyaan Umum (FAQ)', 'help_faq').row()
+    .text('Cara Pemesanan', 'help_order').row()
+    .text('Kebijakan Garansi', 'help_warranty').row();
   return ctx.reply(tpl || 'Pusat Bantuan YimStore.\nSilakan pilih topik bantuan yang Anda butuhkan di bawah ini:', { reply_markup: keyboard, parse_mode: tpl ? 'HTML' : undefined });
 });
 
@@ -494,42 +555,67 @@ bot.callbackQuery(/^view_order_(.+)$/, async (ctx) => {
   const isPaid = ['paid', 'success', 'completed'].includes(order.payment_status?.toLowerCase());
   const statusText = isPaid ? (order.delivery_status === 'Delivered' ? 'Selesai' : 'Proses') : 'Menunggu Pembayaran';
   
-  let text = `Pesanan: ${shortId}\n`;
-  text += `Produk: ${productName}\n`;
-  text += `Total: Rp${order.total_amount.toLocaleString('id-ID')}\n`;
-  text += `Status: ${statusText}\n`;
+  let warrantyEndStr = '-';
+  let isWarrantyActive = false;
+  let claimsLeft = 0;
+  let warrantyDays = 0;
 
   if (isPaid && orderItem) {
     const warrantyEnd = orderItem.warranty_end_date ? new Date(orderItem.warranty_end_date) : null;
-    const isWarrantyActive = warrantyEnd && warrantyEnd > new Date();
-    const warrantyDays = productData?.warranty_days || 0;
-    const claimsLeft = orderItem.max_claim_limit - (orderItem.current_claim_count || 0);
-
-    text += `\n[Info Garansi]\n`;
-    text += `Masa Garansi: ${warrantyDays} Hari\n`;
+    isWarrantyActive = warrantyEnd ? (warrantyEnd > new Date()) : false;
+    warrantyDays = productData?.warranty_days || 0;
+    claimsLeft = orderItem.max_claim_limit - (orderItem.current_claim_count || 0);
+    if (claimsLeft < 0) claimsLeft = 0;
     if (warrantyEnd) {
-      text += `Berlaku Hingga: ${warrantyEnd.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}\n`;
-      text += `Status Garansi: ${isWarrantyActive ? 'Aktif' : 'Kedaluwarsa'}\n`;
+      warrantyEndStr = warrantyEnd.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     }
-    text += `Sisa Kuota Klaim: ${claimsLeft > 0 ? claimsLeft : 0}x\n`;
+  }
+
+  const tpl = await getTemplate('order_details');
+  let text = '';
+  let parseMode = 'HTML';
+
+  if (tpl) {
+    text = tpl
+      .replace(/{{short_id}}/g, shortId)
+      .replace(/{{product_name}}/g, productName)
+      .replace(/{{total_amount}}/g, order.total_amount.toLocaleString('id-ID'))
+      .replace(/{{status}}/g, statusText)
+      .replace(/{{warranty_days}}/g, String(warrantyDays))
+      .replace(/{{warranty_end_date}}/g, warrantyEndStr)
+      .replace(/{{warranty_status}}/g, isWarrantyActive ? 'Aktif' : 'Kedaluwarsa')
+      .replace(/{{claims_left}}/g, String(claimsLeft));
+  } else {
+    parseMode = 'Markdown';
+    text = `*Pesanan: ${shortId}*\n`;
+    text += `Produk: ${productName}\n`;
+    text += `Total: Rp${order.total_amount.toLocaleString('id-ID')}\n`;
+    text += `Status: ${statusText}\n`;
+    
+    if (isPaid && orderItem) {
+      text += `\n*[Info Garansi]*\n`;
+      text += `Masa Garansi: ${warrantyDays} Hari\n`;
+      text += `Berlaku Hingga: ${warrantyEndStr}\n`;
+      text += `Status Garansi: ${isWarrantyActive ? 'Aktif' : 'Kedaluwarsa'}\n`;
+      text += `Sisa Kuota Klaim: ${claimsLeft}x\n`;
+    }
   }
 
   const dashboardUrl = `${baseUrl}/order/${order.id}?token=${order.access_token}`;
   const keyboard = new InlineKeyboard();
 
   if (isPaid && orderItem) {
-    const warrantyEnd = orderItem.warranty_end_date ? new Date(orderItem.warranty_end_date) : null;
-    const isWarrantyActive = warrantyEnd && warrantyEnd > new Date();
-    const claimsLeft = orderItem.max_claim_limit - (orderItem.current_claim_count || 0);
-
     if (isWarrantyActive && claimsLeft > 0) {
-      keyboard.text('Klaim Garansi', `claim_${orderItem.id}`).row();
+      const btnClaim = await getButtonLabel('btn_inline_claim', '🛡️ Klaim Garansi');
+      keyboard.text(btnClaim, `claim_${orderItem.id}`).row();
     }
   }
 
-  keyboard
-    .url('Buka Dashboard', dashboardUrl).row()
-    .text('⬅️ Kembali ke Daftar', 'cek_pesanan_list');
+  const btnDashboard = await getButtonLabel('btn_inline_dashboard', '🌐 Buka Dashboard');
+  const btnBackList = await getButtonLabel('btn_inline_back', '🔙 Kembali ke List');
+  
+  keyboard.url(btnDashboard, dashboardUrl).row();
+  keyboard.text(btnBackList, 'cek_pesanan_list');
 
   await ctx.editMessageText(text, { reply_markup: keyboard });
   ctx.answerCallbackQuery();
@@ -561,7 +647,26 @@ bot.callbackQuery(/^claim_(.+)$/, async (ctx) => {
     let errMsg = 'Gagal memproses klaim.';
     if (error.message.includes('Claim limit reached')) errMsg = 'Batas klaim sudah habis.';
     else if (error.message.includes('Warranty expired')) errMsg = 'Masa garansi sudah habis.';
-    else if (error.message.includes('Cooldown active')) errMsg = 'Masih dalam masa jeda klaim.';
+    else if (error.message.includes('Cooldown active')) {
+      const parts = error.message.split('|');
+      if (parts.length > 1) {
+        const nextTime = new Date(parts[1]);
+        const diffMs = nextTime.getTime() - Date.now();
+        if (diffMs > 0) {
+          const totalMins = Math.ceil(diffMs / (1000 * 60));
+          const hours = Math.floor(totalMins / 60);
+          const mins = totalMins % 60;
+          let timeStr = '';
+          if (hours > 0) timeStr += `${hours} jam `;
+          timeStr += `${mins} menit`;
+          errMsg = `Masih dalam masa jeda klaim. Coba lagi dalam ${timeStr}.`;
+        } else {
+          errMsg = 'Masih dalam masa jeda klaim.';
+        }
+      } else {
+        errMsg = 'Masih dalam masa jeda klaim.';
+      }
+    }
     else if (error.message.includes('No replacement inventory available')) errMsg = 'Stok kosong. Klaim Anda masuk antrean.';
     
     return ctx.answerCallbackQuery({ text: errMsg, show_alert: true });
@@ -754,10 +859,17 @@ bot.command('start', async (ctx) => {
     
     const welcomeText = tpl || `✨ *Selamat Datang di YimStore!* ✨\n\nPusat layanan digital dan akun premium terpercaya. Kami menyediakan berbagai macam kebutuhan digital dengan proses yang instan dan otomatis 24/7.\n\n📊 *Statistik Bot:*\n👥 Pengguna Aktif: ${userCount || 0} Pengguna\n🛍️ Transaksi Berhasil: ${orderCount || 0} Pesanan\n\nSilakan pilih menu di bawah ini untuk memulai:`;
     
+    // Fetch dynamic labels for inline keyboard
+    const [btnKatalog, btnRiwayat, btnHelp] = await Promise.all([
+      getButtonLabel('btn_main_catalog', '🛒 List Produk'),
+      getButtonLabel('btn_main_history', '📄 Riwayat Transaksi'),
+      getButtonLabel('btn_main_help', '❓ Bantuan')
+    ]);
+
     const welcomeInlineKeyboard = new InlineKeyboard()
-      .text("🛒 Katalog Produk", "menu_katalog").row()
-      .text("📄 Riwayat Transaksi", "menu_riwayat")
-      .text("❓ Bantuan", "menu_bantuan");
+      .text(btnKatalog, "menu_katalog").row()
+      .text(btnRiwayat, "menu_riwayat")
+      .text(btnHelp, "menu_bantuan");
 
     await ctx.reply(welcomeText, { 
       parse_mode: 'HTML', 
@@ -801,7 +913,8 @@ bot.command('start', async (ctx) => {
       if (existingUser) {
         await supabaseAdmin.from('orders').update({ user_id: existingUser.id }).eq('id', order.id);
         if (order.user_id) await supabaseAdmin.from('users').delete().eq('id', order.user_id);
-        return ctx.reply('✅ Akses berhasil digabungkan dengan riwayat akun Anda sebelumnya.\n\nKlik "Riwayat Transaksi" untuk melihat semua pesanan Anda.', { reply_markup: mainKeyboard });
+        const mk = await getMainKeyboard();
+        return ctx.reply('✅ Akses berhasil digabungkan dengan riwayat akun Anda sebelumnya.\n\nKlik "Riwayat Transaksi" untuk melihat semua pesanan Anda.', { reply_markup: mk });
       } else {
         if (order.user_id) {
           await supabaseAdmin.from('users').update({ telegram_chat_id: chatId }).eq('id', order.user_id);
@@ -809,7 +922,8 @@ bot.command('start', async (ctx) => {
           const { data: newUser } = await supabaseAdmin.from('users').insert({ telegram_chat_id: chatId }).select('id').single();
           if (newUser) await supabaseAdmin.from('orders').update({ user_id: newUser.id }).eq('id', order.id);
         }
-        return ctx.reply('✅ Akun Telegram Anda berhasil dihubungkan dengan pesanan Anda!\n\nKlik "Riwayat Transaksi" untuk melihat pesanan Anda.', { reply_markup: mainKeyboard });
+        const mk = await getMainKeyboard();
+        return ctx.reply('✅ Akun Telegram Anda berhasil dihubungkan dengan pesanan Anda!\n\nKlik "Riwayat Transaksi" untuk melihat pesanan Anda.', { reply_markup: mk });
       }
     } else {
       if (orderUser.telegram_chat_id == chatId) {
@@ -856,7 +970,8 @@ bot.callbackQuery(/^cancel_(.+)$/, async (ctx) => {
 
     // Edit the message to show it was cancelled
     if (ctx.callbackQuery.message) {
-      const keyboard = new InlineKeyboard().text('⬅️ Kembali ke Katalog', 'katalog_main');
+      const btnBackCat = await getButtonLabel('btn_back_catalog', '⬅️ Kembali ke Katalog');
+      const keyboard = new InlineKeyboard().text(btnBackCat, 'katalog_main');
       const tpl = await getTemplate('order_cancelled');
       await ctx.editMessageText(tpl || '❌ *Pesanan Dibatalkan*\n\nTerima kasih, pesanan Anda telah berhasil dibatalkan dan stok telah dikembalikan.', { parse_mode: tpl ? 'HTML' : 'Markdown', reply_markup: keyboard }).catch(console.error);
     }

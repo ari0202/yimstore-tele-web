@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { verifyAdminAPI } from '@/lib/auth';
 
 export async function POST(req: Request) {
+  const session = await verifyAdminAPI();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const { orderItemId } = await req.json();
 

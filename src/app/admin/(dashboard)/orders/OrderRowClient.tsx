@@ -9,6 +9,13 @@ export default function OrderRowClient({ order }: { order: any }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
   
+  const getStatusColor = (status: string) => {
+    if (['paid', 'PAID', 'success', 'SUCCESS', 'completed', 'COMPLETED'].includes(status)) return 'text-green-600';
+    if (['cancelled', 'CANCELLED', 'failed', 'FAILED'].includes(status)) return 'text-red-600';
+    if (['pending', 'PENDING'].includes(status)) return 'text-yellow-600';
+    return 'text-gray-600';
+  };
+  
   const orderIdFmt = `INV-${order.id.split('-')[0].toUpperCase()}`;
 
   const handleCopyId = (e: React.MouseEvent) => {
@@ -72,7 +79,7 @@ export default function OrderRowClient({ order }: { order: any }) {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm md:text-base">Rp{order.total_amount.toLocaleString('id-ID')}</div>
-              <div className="text-xs text-green-600 mt-1">{order.payment_status}</div>
+              <div className={`text-xs mt-1 ${getStatusColor(order.payment_status)}`}>{order.payment_status}</div>
             </div>
             <div className="lg:hidden text-[var(--color-text-muted)]">
               <ChevronRight size={18} />
@@ -137,7 +144,7 @@ export default function OrderRowClient({ order }: { order: any }) {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-[var(--color-text-muted)]">Status</span>
-                  <span className="text-sm text-green-600 font-medium">{order.payment_status}</span>
+                  <span className={`text-sm font-medium ${getStatusColor(order.payment_status)}`}>{order.payment_status}</span>
                 </div>
               </div>
 

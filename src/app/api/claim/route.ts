@@ -56,7 +56,28 @@ export async function POST(req: Request) {
   if (error) {
     console.error("RPC ERROR DETECTED:", error);
     if (error.message.includes('Claim limit reached') || error.message.includes('Warranty expired') || error.message.includes('Cooldown active')) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
+      let errMsg = error.message;
+      if (errMsg.includes('Cooldown active')) {
+        const parts = errMsg.split('|');
+        if (parts.length > 1) {
+          const nextTime = new Date(parts[1]);
+          const diffMs = nextTime.getTime() - Date.now();
+          if (diffMs > 0) {
+            const totalMins = Math.ceil(diffMs / (1000 * 60));
+            const hours = Math.floor(totalMins / 60);
+            const mins = totalMins % 60;
+            let timeStr = '';
+            if (hours > 0) timeStr += `${hours} jam `;
+            timeStr += `${mins} menit`;
+            errMsg = `Masih dalam masa jeda klaim. Coba lagi dalam ${timeStr}.`;
+          } else {
+            errMsg = 'Masih dalam masa jeda klaim.';
+          }
+        } else {
+          errMsg = 'Masih dalam masa jeda klaim.';
+        }
+      }
+      return NextResponse.json({ error: errMsg }, { status: 403 });
     }
     if (error.message.includes('No replacement inventory available')) {
       return NextResponse.json({ message: 'Stock empty. Claim waitlisted.' }, { status: 202 });

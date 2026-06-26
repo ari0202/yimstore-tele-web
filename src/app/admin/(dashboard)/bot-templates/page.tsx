@@ -19,7 +19,7 @@ export default async function BotTemplatesPage() {
   }
 
   return (
-    <div className="max-w-4xl space-y-8">
+    <div className="max-w-7xl space-y-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
           <MessageSquareText className="text-blue-600" />
@@ -31,7 +31,7 @@ export default async function BotTemplatesPage() {
         </p>
       </div>
 
-      <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {templates?.map((tpl) => (
           <TemplateForm key={tpl.id} tpl={tpl} updateTemplateAction={updateTemplate} />
         ))}
