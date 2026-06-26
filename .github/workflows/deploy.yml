@@ -37,7 +37,7 @@ jobs:
         env:
           DEPLOY_KEY: ${{ secrets.VPS_SSH_KEY }}
         with:
-          flags: '-avz --delete'
+          flags: '-avz --delete --exclude .env'
           options: ''
           ssh_options: '-p ${{ secrets.VPS_PORT || 22 }}'
           src: '.next/standalone/'

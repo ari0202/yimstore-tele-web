@@ -59,9 +59,10 @@ export default async function CatalogPage({ searchParams }: { searchParams: { er
     : products;
 
   if (error) {
+    console.error("Supabase Error on Homepage:", error);
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="p-8 text-red-500 bg-red-50 rounded-2xl">Gagal memuat produk.</div>
+        <div className="p-8 text-red-500 bg-red-50 rounded-2xl">Gagal memuat produk: {error.message}</div>
       </div>
     );
   }
