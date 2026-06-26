@@ -36,6 +36,9 @@ Semua spesifikasi utama dari `prd-v1.md` telah diselesaikan secara komprehensif,
   - Proteksi **IDOR Casting Telegram** pada klaim, dengan Dual Auth Resolution (Cookie & Bot Token) plus JOIN ke tabel `users` untuk memvalidasi `telegram_chat_id`.
   - Validasi Webhook HMAC menggunakan buffer raw (`arrayBuffer()`), dan memberikan respons HTTP 401 (Unauthorized) untuk signature mismatch guna memaksa retry dari gateway.
   - Perbaikan Skema RLS Komprehensif: Menargetkan tabel `admins`, menggunakan **Custom JWT parsing (`request.jwt.claims`)**, menerapkan B-Tree indexes untuk performa, dan mengatur fallback untuk users.
+  - Implementasi Webhook Idempotency: Menambahkan pengecekan `idempotency-key` via Upstash Redis (`setnx`) pada handler Pakasir dan Telegram untuk mencegah pemrosesan order ganda jika terjadi retry storm.
+  - Fix missing FK indexes (per production audit): Created migration `20260626000000_add_missing_fk_indexes.sql` dan `20260626000001_add_inventory_category_index.sql` untuk semua tabel, and pushed to remote production DB via `migration.ts`.
+  - Deployment Prep: Memvalidasi `npm run build` berhasil bersih dan menyertakan file `.env.example` sebagai template untuk *Environment Variables* di Vercel Dashboard.
 - `[x]` **Admin Management Fixes (2026-06-23)**
   - Update Admin View Schema (`parent_id`, `max_claim_limit` backfill).
   - Product Edit Name fix & Hard Delete RPC implementation.

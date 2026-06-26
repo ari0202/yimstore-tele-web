@@ -1,1 +1,62 @@
-{"error":"rate_limited","reason":"url_cap","message":"This repo has been audited 7 times today (cap 5). Cached results stay valid for 7 days.","limit":5,"count":7,"quota":{"reset_at":"2026-06-26T00:00:00.000Z","ip":{"count":7,"limit":10,"remaining":3,"tier":"authed"},"url":{"count":7,"limit":5,"remaining":0},"global":{"count":5,"limit":2000,"remaining":1995}},"target":"https://github.com/ari0202/yimstore-tele-web"}
+{
+  "schema_version": "1",
+  "generated_at": "2026-06-26T02:10:05.760Z",
+  "project": {
+    "id": "b60bbb96-467e-4291-a755-9eade56ead00",
+    "name": "yimstore-tele-web",
+    "github_url": "https://github.com/ari0202/yimstore-tele-web",
+    "live_url": null,
+    "status": "preview",
+    "creator": {
+      "name": null,
+      "grade": "Rookie"
+    },
+    "url": "https://commit.show/projects/b60bbb96-467e-4291-a755-9eade56ead00"
+  },
+  "score": {
+    "track": "walk_on",
+    "total": 13,
+    "total_max": 100,
+    "audit": 5,
+    "audit_max": 50,
+    "scout": 0,
+    "scout_max": 30,
+    "community": 1,
+    "community_max": 20,
+    "delta_since_last": 3,
+    "band": "weak",
+    "walk_on_total": 13,
+    "walk_on_band": "weak",
+    "walk_on_audit_normalized": 10
+  },
+  "standing": null,
+  "strengths": [
+    {
+      "axis": "Security",
+      "bullet": "13 RLS policies covering all 14 tables — gap_estimate=0, no anon-writable tables detected."
+    },
+    {
+      "axis": "Infrastructure",
+      "bullet": "37 SQL files with 14 CREATE TABLE + PLpgSQL RPCs — substantial schema work, 15% of codebase is database logic."
+    },
+    {
+      "axis": "Code",
+      "bullet": "@upstash/ratelimit detected in 37 deps — rate-limiting library wired before any live traffic."
+    }
+  ],
+  "concerns": [
+    {
+      "axis": "Infrastructure",
+      "bullet": "25 of 49 FK columns lack a CREATE INDEX — full-table scans certain at scale (fix_rpc.sql, rpc_dump.sql samples)."
+    },
+    {
+      "axis": "UX",
+      "bullet": "No live URL — Lighthouse, completeness, and all user-facing quality slots score zero; app is unshippable as-is."
+    }
+  ],
+  "snapshot": {
+    "id": "15719853-cc09-49cf-be16-fb0208e62cd4",
+    "created_at": "2026-06-26T02:10:02.600147+00:00",
+    "trigger_type": "resubmit"
+  }
+}
