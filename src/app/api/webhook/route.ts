@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { Redis } from '@upstash/redis';
 
 export async function POST(req: Request) {
   // Gunakan arrayBuffer untuk mencegah normalisasi string yang memecahkan signature
@@ -32,6 +33,18 @@ export async function POST(req: Request) {
   if (payload.project && payload.project !== projectSlug) {
     console.error("⚠️ Webhook ditolak: Project Slug tidak cocok!");
     return NextResponse.json({ error: 'Invalid Project' }, { status: 401 });
+  }
+
+  // Idempotency Check
+  const redis = Redis.fromEnv();
+  const idempotencyKey = req.headers.get('idempotency-key') || req.headers.get('x-idempotency-key');
+  
+  if (idempotencyKey) {
+    const isDuplicate = await redis.setnx(`webhook_idempotency:${idempotencyKey}`, 'processed');
+    if (!isDuplicate) {
+      console.log(`⚠️ Webhook idempotency hit: skipping duplicate processing for key ${idempotencyKey}`);
+      return NextResponse.json({ message: 'Duplicate request (Idempotency Key)' }, { status: 200 });
+    }
   }
 
   // Resolve short ID (e.g. INV-7B3DE292) back to full UUID
