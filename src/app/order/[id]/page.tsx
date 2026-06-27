@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { createPakasirTransaction } from '@/lib/pakasir';
@@ -6,6 +7,8 @@ import PaymentSection from './PaymentSection';
 import CopyButton from './CopyButton';
 import CopyPageLinkButton from './CopyPageLinkButton';
 import ClaimButton from './ClaimButton';
+import CancelOrderButton from './CancelOrderButton';
+import { cancelOrder } from './actions';
 
 export default async function OrderDashboard({ params, searchParams }: { params: { id: string }, searchParams: { token?: string } }) {
   // Await cookies and params as required in modern Next.js
@@ -46,6 +49,7 @@ export default async function OrderDashboard({ params, searchParams }: { params:
       id,
       total_amount,
       payment_status,
+      created_at,
       order_items (
         id, warranty_end_date, current_claim_count,
         products ( name, max_claim_limit, warranty_days ),
@@ -76,12 +80,23 @@ export default async function OrderDashboard({ params, searchParams }: { params:
   let totalPayment = order.total_amount;
   const shortId = `INV-${order.id.split('-')[0].toUpperCase()}`;
 
+  // Enforce 15-minute expiration rule visually on the frontend
+  // This handles cases where the background cron job hasn't run yet or is delayed
+  const systemExpiredAt = new Date(new Date(order.created_at).getTime() + 15 * 60 * 1000);
+  const isTimeExpired = new Date().getTime() > systemExpiredAt.getTime();
+  
+  if (isTimeExpired && order.payment_status === 'pending') {
+    // Mutate the local object so the UI reflects the expired state immediately
+    order.payment_status = 'expired';
+  }
+
   if (order.payment_status === 'pending') {
     try {
       const detail = await createPakasirTransaction(shortId, order.total_amount);
       if (detail?.payment?.payment_number) {
         qrisString = detail.payment.payment_number;
-        paymentExpiredAt = detail.payment.expired_at;
+        // Gunakan batas waktu sistem (15 menit)
+        paymentExpiredAt = systemExpiredAt.toISOString();
         if (detail.payment.total_payment) {
           totalPayment = detail.payment.total_payment;
         }
@@ -141,7 +156,30 @@ export default async function OrderDashboard({ params, searchParams }: { params:
               </div>
               
               <div className="p-5 md:p-6 space-y-6">
-                {!isPaid ? (
+                {order.payment_status?.toLowerCase() === 'expired' || order.payment_status?.toLowerCase() === 'cancelled' ? (
+                  <div className="space-y-6 text-center py-8">
+                    <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                      </svg>
+                    </div>
+                    <h3 className="font-black text-xl text-[var(--color-text-primary)]">Pesanan Dibatalkan</h3>
+                    <p className="text-sm text-[var(--color-text-muted)] mt-2 max-w-sm mx-auto">
+                      Waktu pembayaran untuk pesanan ini telah habis atau pesanan telah dibatalkan secara manual.
+                    </p>
+                    <div className="pt-4">
+                      <Link 
+                        href="/" 
+                        className="inline-flex items-center justify-center px-6 py-3 bg-[var(--color-action-primary)] hover:bg-[var(--color-action-hover)] text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg gap-2 text-sm"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                        </svg>
+                        Beli Produk Lain
+                      </Link>
+                    </div>
+                  </div>
+                ) : !isPaid ? (
                   <div className="space-y-6">
                     <div className="text-center pt-2">
                       <h3 className="font-black text-xl text-[var(--color-text-primary)]">Selesaikan Pembayaran</h3>
@@ -170,9 +208,7 @@ export default async function OrderDashboard({ params, searchParams }: { params:
                         </div>
                       )}
                       
-                      <p className="text-xs text-gray-400 mt-4 max-w-md mx-auto border-t border-[var(--color-border-soft)] pt-4">
-                        Untuk simulasi pengetesan (Sandbox), Anda dapat mengubah status pesanan ini melalui Dashboard Admin Pakasir. Halaman ini akan otomatis memperbarui kontennya setelah Webhook pembayaran berhasil diterima.
-                      </p>
+                      <CancelOrderButton orderId={order.id} token={token} />
                     </div>
                   </div>
                 ) : (

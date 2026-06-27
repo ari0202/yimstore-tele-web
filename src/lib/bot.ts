@@ -243,9 +243,16 @@ bot.callbackQuery('katalog_main', (ctx) => {
 bot.callbackQuery(/^cat_(.+)$/, async (ctx) => {
   const categoryId = ctx.match[1];
   
+  const { data: catStockData } = await supabaseAdmin
+    .from('inventory')
+    .select('id')
+    .eq('category_id', categoryId)
+    .eq('status', 'Available');
+  const catStock = catStockData ? catStockData.length : 0;
+
   const { data: products } = await supabaseAdmin
     .from('admin_product_summary_view')
-    .select('id, name, base_price, description, total_stock')
+    .select('id, name, base_price, description, available_stock, is_sync_stock')
     .eq('category_id', categoryId)
     .eq('is_archived', false)
     .order('base_price', { ascending: true });
@@ -259,7 +266,8 @@ bot.callbackQuery(/^cat_(.+)$/, async (ctx) => {
 
   products.forEach((prod: any, index: number) => {
     const num = index + 1;
-    variation_list += `┊ [ ${num} ] ${prod.name} (Stok: ${prod.total_stock || 0})\n`;
+    const stock = prod.is_sync_stock ? catStock : (prod.available_stock || 0);
+    variation_list += `┊ [ ${num} ] ${prod.name} (Stok: ${stock})\n`;
     keyboard.text(num.toString(), `detail_${prod.id}`);
   });
   
@@ -286,18 +294,34 @@ bot.callbackQuery(/^detail_(.+)$/, async (ctx) => {
   
   const { data: product } = await supabaseAdmin
     .from('admin_product_summary_view')
-    .select('id, name, base_price, category_id, description, total_stock, sold_stock, latest_restock')
+    .select('id, name, base_price, category_id, description, available_stock, sold_stock, is_sync_stock')
     .eq('id', productId)
     .single();
     
   if (!product) return ctx.answerCallbackQuery({ text: 'Produk tidak ditemukan.', show_alert: true });
   
-  const availableStock = product.total_stock || 0;
+  let availableStock = product.available_stock || 0;
+  if (product.is_sync_stock) {
+    const { data: catStockData } = await supabaseAdmin
+      .from('inventory')
+      .select('id')
+      .eq('category_id', product.category_id)
+      .eq('status', 'Available');
+    availableStock = catStockData ? catStockData.length : 0;
+  }
   const soldStock = product.sold_stock || 0;
   
   let restokText = '-';
-  if (product.latest_restock) {
-    const diffMs = Date.now() - new Date(product.latest_restock).getTime();
+  const { data: latestInv } = await supabaseAdmin
+    .from('inventory')
+    .select('created_at')
+    .eq(product.is_sync_stock ? 'category_id' : 'product_id', product.is_sync_stock ? product.category_id : productId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (latestInv?.created_at) {
+    const diffMs = Date.now() - new Date(latestInv.created_at).getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     restokText = diffDays === 0 ? 'Hari ini' : `${diffDays} hari yang lalu`;
   }

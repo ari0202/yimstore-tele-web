@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import Navbar from '@/components/ui/Navbar';
 import HeroSection from '@/components/ui/HeroSection';
 import ProductCard from '@/components/ui/ProductCard';
+import RealtimeCatalogRefresh from '@/components/ui/RealtimeCatalogRefresh';
 import { Suspense } from 'react';
 
 export default async function CatalogPage({ searchParams }: { searchParams: { error?: string, q?: string } }) {
@@ -67,13 +68,14 @@ export default async function CatalogPage({ searchParams }: { searchParams: { er
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-slate-50">
+      <RealtimeCatalogRefresh />
       <Suspense fallback={<div className="h-16 w-full bg-white border-b border-gray-100 sticky top-0 z-40"></div>}>
         <Navbar />
       </Suspense>
       <main className="flex-1">
         <HeroSection />
 
-        <section className="w-full py-16">
+        <section className="w-full pb-12 pt-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           {resolvedSearch.error && (
             <div className="mb-8 p-4 rounded-xl bg-red-50 border border-red-100 flex items-center gap-3">

@@ -155,7 +155,7 @@ export default function PaymentSection({
       {/* 5. Fallback Help */}
       <div className="pt-4 border-t border-[var(--color-border-soft)]">
         <a 
-          href={`https://t.me/YimStoreBot?start=token_${token}`} 
+          href={process.env.NEXT_PUBLIC_ADMIN_TELEGRAM || `https://t.me/YimStoreBot`} 
           target="_blank" 
           rel="noopener noreferrer"
           className="inline-flex items-center justify-center w-full max-w-md px-6 py-3 bg-[var(--color-action-primary)] hover:bg-[var(--color-action-hover)] text-white rounded-xl font-bold transition-all shadow-md hover:shadow-lg gap-3 text-base"
