@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { verifyAdminAPI } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
+  const session = await verifyAdminAPI();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const { searchParams } = new URL(req.url);
     const range = searchParams.get('range') || '7d'; // 'today', '7d', '30d', 'all'
@@ -26,7 +32,7 @@ export async function GET(req: Request) {
       .from('orders')
       .select('id, total_amount, created_at, payment_status')
       .gte('created_at', startDateStr)
-      .eq('payment_status', 'paid');
+      .in('payment_status', ['paid', 'PAID', 'completed', 'COMPLETED', 'success', 'SUCCESS']);
 
     if (ordersError) throw ordersError;
 
@@ -38,25 +44,47 @@ export async function GET(req: Request) {
     // 2. Fetch Time-series Data
     const timeSeriesMap: Record<string, { date: string; revenue: number; orders: number }> = {};
     
-    // Initialize empty dates for the range
-    if (range !== 'all') {
-      const days = range === '30d' ? 30 : range === '7d' ? 7 : 1;
-      for (let i = days - 1; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const dateStr = d.toISOString().split('T')[0];
+    if (range === 'today') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      for (let i = 0; i < 24; i++) {
+        const d = new Date(today);
+        d.setHours(i);
+        // Use local hour string as key for simplicity
+        const dateStr = d.toISOString();
         timeSeriesMap[dateStr] = { date: dateStr, revenue: 0, orders: 0 };
       }
-    }
-
-    orders.forEach(o => {
-      const d = new Date(o.created_at).toISOString().split('T')[0];
-      if (!timeSeriesMap[d]) {
-        timeSeriesMap[d] = { date: d, revenue: 0, orders: 0 };
+      
+      orders.forEach(o => {
+        const d = new Date(o.created_at);
+        d.setMinutes(0, 0, 0); // truncate to hour
+        const dateStr = d.toISOString();
+        if (timeSeriesMap[dateStr]) {
+          timeSeriesMap[dateStr].revenue += Number(o.total_amount);
+          timeSeriesMap[dateStr].orders += 1;
+        }
+      });
+    } else {
+      // 7d, 30d, all - Aggregate by Day
+      if (range !== 'all') {
+        const days = range === '30d' ? 30 : range === '7d' ? 7 : 1;
+        for (let i = days - 1; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          const dateStr = d.toISOString().split('T')[0];
+          timeSeriesMap[dateStr] = { date: dateStr, revenue: 0, orders: 0 };
+        }
       }
-      timeSeriesMap[d].revenue += Number(o.total_amount);
-      timeSeriesMap[d].orders += 1;
-    });
+  
+      orders.forEach(o => {
+        const d = new Date(o.created_at).toISOString().split('T')[0];
+        if (!timeSeriesMap[d]) {
+          timeSeriesMap[d] = { date: d, revenue: 0, orders: 0 };
+        }
+        timeSeriesMap[d].revenue += Number(o.total_amount);
+        timeSeriesMap[d].orders += 1;
+      });
+    }
 
     const chartData = Object.values(timeSeriesMap).sort((a, b) => a.date.localeCompare(b.date));
 
@@ -65,7 +93,7 @@ export async function GET(req: Request) {
     const { data: allPaidOrders } = await supabaseAdmin
       .from('orders')
       .select('delivery_status')
-      .eq('payment_status', 'paid');
+      .in('payment_status', ['paid', 'PAID', 'completed', 'COMPLETED', 'success', 'SUCCESS']);
       
     const operationalStatus = {
       pending: 0,

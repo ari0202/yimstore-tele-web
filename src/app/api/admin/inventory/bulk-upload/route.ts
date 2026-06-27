@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
-import { verifyAdminSession } from '@/lib/auth';
+import { verifyAdminAPI } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 
 export async function POST(request: Request) {
+  const session = await verifyAdminAPI();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const { admin_id } = session;
+
   try {
-    const { admin_id } = await verifyAdminSession();
     const body = await request.json();
     const { target_id, target_type, credentials } = body;
 

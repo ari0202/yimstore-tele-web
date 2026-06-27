@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LogOut, LayoutDashboard, Package, Grid, Settings, Menu, X, PlusSquare, ShoppingCart, Moon, Sun, MessageSquareText } from 'lucide-react';
+import { LogOut, LayoutDashboard, Package, Grid, Settings, Menu, X, PlusSquare, ShoppingCart, Moon, Sun, MessageSquareText, MousePointerClick } from 'lucide-react';
 import { handleLogout } from '@/app/admin/actions';
 import { useTheme } from 'next-themes';
 
@@ -26,6 +26,7 @@ export default function AdminSidebarWrapper({ children }: { children: React.Reac
   else if (pathname.includes('/orders')) title = 'Manajemen Pesanan';
   else if (pathname.includes('/settings')) title = 'Settings';
   else if (pathname.includes('/bot-templates')) title = 'Bot Templates';
+  else if (pathname.includes('/bot-buttons')) title = 'Bot Menu Buttons';
 
   return (
     <div className="min-h-[100dvh] bg-gray-50 dark:bg-gray-950 flex relative w-full overflow-hidden transition-colors">
@@ -73,6 +74,9 @@ export default function AdminSidebarWrapper({ children }: { children: React.Reac
           </Link>
           <Link href="/admin/bot-templates" onClick={() => setIsOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${pathname.includes('/bot-templates') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
             <MessageSquareText size={20} /> Bot Templates
+          </Link>
+          <Link href="/admin/bot-buttons" onClick={() => setIsOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${pathname.includes('/bot-buttons') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
+            <MousePointerClick size={20} /> Menu Buttons
           </Link>
         </nav>
 

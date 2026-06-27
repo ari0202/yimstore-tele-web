@@ -85,6 +85,11 @@ export default function CreateProductForm({ categories }: CreateProductFormProps
           <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Batas Maksimal Klaim</label>
           <input type="number" name="max_claim_limit" defaultValue={2} required data-testid="product-max-claim" className="w-full px-4 py-2 border border-[var(--color-border-soft)] bg-[var(--color-surface-card)] text-[var(--color-text-primary)] rounded-lg focus:ring-2 focus:ring-[var(--color-action-primary)] outline-none" />
         </div>
+        <div className="col-span-full md:col-span-1">
+          <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Jeda Antar Klaim (Hari)</label>
+          <input type="number" name="cooldown_value" defaultValue={0} min={0} required data-testid="product-cooldown" className="w-full px-4 py-2 border border-[var(--color-border-soft)] bg-[var(--color-surface-card)] text-[var(--color-text-primary)] rounded-lg focus:ring-2 focus:ring-[var(--color-action-primary)] outline-none" />
+          <p className="text-xs text-[var(--color-text-muted)] mt-1">Set 0 jika tidak ada jeda.</p>
+        </div>
 
         <div className="col-span-full flex flex-col sm:flex-row justify-end mt-6 pt-6 border-t border-[var(--color-border-soft)] gap-3">
           <button type="button" data-testid="cancel-button" onClick={() => router.push('/admin/products')} className="w-full sm:w-auto px-6 py-2.5 text-[var(--color-text-secondary)] bg-[var(--color-surface-core)] hover:bg-[var(--color-border-soft)] rounded-lg font-medium transition-colors">

@@ -27,8 +27,10 @@ export default async function ProductsPage() {
     const price = parseInt(formData.get('price') as string);
     const warranty_days = parseInt(formData.get('warranty_days') as string);
     const max_claim_limit = parseInt(formData.get('max_claim_limit') as string);
+    const cooldown_value = parseInt(formData.get('cooldown_value') as string) || 0;
+    const cooldown_unit = 'days';
 
-    if (isNaN(price) || price < 0 || isNaN(warranty_days) || warranty_days < 0 || isNaN(max_claim_limit) || max_claim_limit < 0) {
+    if (isNaN(price) || price < 0 || isNaN(warranty_days) || warranty_days < 0 || isNaN(max_claim_limit) || max_claim_limit < 0 || isNaN(cooldown_value) || cooldown_value < 0) {
       throw new Error('Nilai numerik tidak valid.');
     }
 
@@ -38,7 +40,7 @@ export default async function ProductsPage() {
 
     await supabaseAdmin
       .from('products')
-      .update({ name, description, thumbnail_url, is_sync_stock, category_id, price, warranty_days, max_claim_limit })
+      .update({ name, description, thumbnail_url, is_sync_stock, category_id, price, warranty_days, max_claim_limit, cooldown_value, cooldown_unit })
       .eq('id', id);
 
     await supabaseAdmin.from('audit_logs').insert({

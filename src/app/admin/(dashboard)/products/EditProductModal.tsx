@@ -18,6 +18,7 @@ interface Product {
   base_price?: number;
   warranty_days?: number;
   max_claim_limit?: number;
+  cooldown_value?: number;
 }
 
 export default function EditProductModal({ product, categories, updateAction }: { product: Product, categories: Category[], updateAction: (formData: FormData) => Promise<void> }) {
@@ -95,9 +96,15 @@ export default function EditProductModal({ product, categories, updateAction }: 
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Batas Maksimal Klaim</label>
-                <input type="number" name="max_claim_limit" defaultValue={product.max_claim_limit || 2} required className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Batas Maksimal Klaim</label>
+                  <input type="number" name="max_claim_limit" defaultValue={product.max_claim_limit || 2} required className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Jeda Antar Klaim (Hari)</label>
+                  <input type="number" name="cooldown_value" defaultValue={product.cooldown_value || 0} min={0} required className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
               </div>
 
               <div>

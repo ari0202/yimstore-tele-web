@@ -8,6 +8,7 @@ ALTER TABLE public.outbox_events ENABLE ROW LEVEL SECURITY;
 
 -- The categories table is queried from the client-side (e.g., inventory page) 
 -- so it requires a policy to allow public reads.
+DROP POLICY IF EXISTS "Allow public read on categories" ON public.categories;
 CREATE POLICY "Allow public read on categories"
   ON public.categories
   FOR SELECT

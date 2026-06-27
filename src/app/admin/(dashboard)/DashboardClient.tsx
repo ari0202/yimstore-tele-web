@@ -110,7 +110,7 @@ export default function DashboardClient() {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border-soft)" opacity={0.5} />
                 <XAxis 
                   dataKey="date" 
-                  tickFormatter={(val) => format(new Date(val), 'dd MMM', { locale: id })}
+                  tickFormatter={(val) => range === 'today' ? format(new Date(val), 'HH:mm') : format(new Date(val), 'dd MMM', { locale: id })}
                   tick={{ fill: '#6b7280', fontSize: 12 }}
                   axisLine={false}
                   tickLine={false}
@@ -124,7 +124,7 @@ export default function DashboardClient() {
                 <RechartsTooltip 
                   contentStyle={{ backgroundColor: 'var(--color-surface-bg)', borderRadius: '8px', border: '1px solid var(--color-border-soft)', color: 'var(--color-text-primary)' }}
                   formatter={(value: any) => [`Rp${Number(value).toLocaleString('id-ID')}`, 'Pendapatan']}
-                  labelFormatter={(label: any) => format(new Date(label), 'dd MMMM yyyy', { locale: id })}
+                  labelFormatter={(label: any) => range === 'today' ? format(new Date(label), 'dd MMMM yyyy, HH:mm', { locale: id }) : format(new Date(label), 'dd MMMM yyyy', { locale: id })}
                 />
                 <Line 
                   type="monotone" 
@@ -237,7 +237,15 @@ export default function DashboardClient() {
                     <td className="px-6 py-4">
                       <div className="font-mono text-xs">{order.id.split('-')[0]}...</div>
                       <div className="mt-1">
-                        <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          ['paid', 'PAID', 'success', 'SUCCESS', 'completed', 'COMPLETED'].includes(order.payment_status) 
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                            : ['cancelled', 'CANCELLED', 'failed', 'FAILED'].includes(order.payment_status)
+                            ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                            : ['pending', 'PENDING'].includes(order.payment_status)
+                            ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                            : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
+                        }`}>
                           {order.payment_status}
                         </span>
                       </div>

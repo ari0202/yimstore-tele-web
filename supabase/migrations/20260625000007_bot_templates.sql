@@ -9,7 +9,9 @@ CREATE TABLE IF NOT EXISTS bot_templates (
 
 ALTER TABLE bot_templates ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Enable read access for all users" ON bot_templates;
 CREATE POLICY "Enable read access for all users" ON bot_templates FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Enable all for admin" ON bot_templates;
 CREATE POLICY "Enable all for admin" ON bot_templates FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 INSERT INTO bot_templates (key, name, content_html, variables_hint) VALUES 
