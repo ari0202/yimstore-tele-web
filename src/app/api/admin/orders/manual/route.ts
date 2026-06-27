@@ -9,7 +9,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { productId, purchaseDate, warrantyDays, remainingClaims } = await req.json();
+    const { productId, purchaseDate, warrantyDays, remainingClaims, useProductPrice } = await req.json();
 
     if (!productId || !purchaseDate || warrantyDays === undefined || remainingClaims === undefined) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -43,10 +43,12 @@ export async function POST(req: Request) {
     }
 
     // 3. Create Order
+    const finalPrice = useProductPrice ? product.price : 0;
+    
     const { data: newOrder, error: orderError } = await supabaseAdmin
       .from('orders')
       .insert({
-        total_amount: product.price,
+        total_amount: finalPrice,
         payment_status: 'paid',
         delivery_status: 'completed',
         platform_source: 'manual'
