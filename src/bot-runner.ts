@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-dotenv.config({ path: '.env.development' });
+dotenv.config();
 
 console.log('Starting Telegram Bot in long-polling mode...');
 

@@ -60,6 +60,14 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
           script: |
+            # Update bot source code
+            cd /home/ubuntu/yimstore-tele-web
+            git reset --hard
+            git checkout main
+            git pull origin main
+            npm install
+            
+            # Restart all PM2 apps (including bot and web)
             cd /var/www/yimstore-tele-web
             pm2 restart ecosystem.config.js || pm2 start ecosystem.config.js
             pm2 save
