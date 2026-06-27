@@ -1,0 +1,6 @@
+              product_id              |          name           | count 
+--------------------------------------+-------------------------+-------
+ 298c3dec-39aa-459d-850c-31cf03c114c2 | Canva Pro 1 Bulan       |     2
+ b276aec7-fcce-4100-9b98-61af6b57b6d1 | Netflix Premium 1 Bulan |    14
+(2 rows)
+

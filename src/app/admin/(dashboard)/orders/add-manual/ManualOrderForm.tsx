@@ -13,6 +13,7 @@ export default function ManualOrderForm({ products }: { products: any[] }) {
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
   const [warrantyDays, setWarrantyDays] = useState(30);
   const [remainingClaims, setRemainingClaims] = useState(2);
+  const [useProductPrice, setUseProductPrice] = useState(false);
   
   // Result State
   const [successLink, setSuccessLink] = useState('');
@@ -34,7 +35,8 @@ export default function ManualOrderForm({ products }: { products: any[] }) {
           productId,
           purchaseDate,
           warrantyDays: Number(warrantyDays),
-          remainingClaims: Number(remainingClaims)
+          remainingClaims: Number(remainingClaims),
+          useProductPrice
         })
       });
 
@@ -118,6 +120,25 @@ export default function ManualOrderForm({ products }: { products: any[] }) {
               <option key={p.id} value={p.id}>{p.name} (Max Klaim: {p.max_claim_limit})</option>
             ))}
           </select>
+          <div className="flex items-start gap-3 mt-3">
+            <div className="flex items-center h-5">
+              <input
+                id="useProductPrice"
+                type="checkbox"
+                checked={useProductPrice}
+                onChange={(e) => setUseProductPrice(e.target.checked)}
+                className="w-4 h-4 border-gray-300 dark:border-gray-700 rounded text-blue-600 focus:ring-blue-500 dark:bg-gray-800"
+              />
+            </div>
+            <div className="text-sm">
+              <label htmlFor="useProductPrice" className="font-medium text-gray-700 dark:text-gray-300">
+                Hitung sebagai Penjualan
+              </label>
+              <p className="text-gray-500 dark:text-gray-400">
+                Aktifkan ini jika Anda ingin pesanan manual ini menggunakan harga produk asli. Biarkan nonaktif (Rp 0) agar tidak mempengaruhi laporan pendapatan platform.
+              </p>
+            </div>
+          </div>
         </div>
 
         <div>
