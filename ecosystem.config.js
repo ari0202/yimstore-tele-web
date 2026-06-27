@@ -3,8 +3,8 @@ module.exports = {
     {
       name: 'yimstore-web',
       script: 'node',
-      args: '.next/standalone/server.js',
-      cwd: '/home/ubuntu/yimstore-tele-web',
+      args: 'server.js',
+      cwd: '/var/www/yimstore-tele-web',
       exec_mode: 'fork',
       instances: 1, // Bisa diubah ke 'max' jika resource VPS mendukung (cluster mode)
       autorestart: true,
