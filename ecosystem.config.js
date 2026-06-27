@@ -1,6 +1,3 @@
-const dotenv = require('dotenv');
-dotenv.config({ path: './.env' });
-
 module.exports = {
   apps: [
     {
@@ -13,8 +10,8 @@ module.exports = {
       autorestart: true,
       watch: false,
       max_memory_restart: '1G',
+      env_file: '.env',
       env: {
-        ...process.env,
         NODE_ENV: 'production',
         PORT: 3001,
       }
@@ -29,8 +26,8 @@ module.exports = {
       autorestart: true,
       watch: false,
       max_memory_restart: '500M',
+      env_file: '.env',
       env: {
-        ...process.env,
         NODE_ENV: 'production',
       }
     }
