@@ -788,24 +788,34 @@ bot.callbackQuery(/^buy_(.+)$/, async (ctx) => {
 
     if (qrisString) {
       const qrUrl = `https://quickchart.io/qr?size=300&text=${encodeURIComponent(qrisString)}`;
-      const messageText = `[​​​​​​​​​​​](${qrUrl})DETAIL PEMBAYARAN\n\n- Order ID: ${shortId}\n- Produk: ${product.name}\n- Jumlah: 1\n- Harga: Rp ${product.base_price.toLocaleString('id-ID')}\n- Fee Payment: Rp ${feePayment.toLocaleString('id-ID')}\n- Total Bayar: Rp ${totalPayment.toLocaleString('id-ID')}\n- Expired: 15 Menit\n\nScan QRIS di bawah. Jika tidak ada respon 60 detik setelah transfer, klik Cek Status.`;
+      const messageText = `DETAIL PEMBAYARAN\n\n- Order ID: ${shortId}\n- Produk: ${product.name}\n- Jumlah: 1\n- Harga: Rp ${product.base_price.toLocaleString('id-ID')}\n- Fee Payment: Rp ${feePayment.toLocaleString('id-ID')}\n- Total Bayar: Rp ${totalPayment.toLocaleString('id-ID')}\n- Expired: 15 Menit\n\nScan QRIS di bawah. Jika tidak ada respon 60 detik setelah transfer, klik Cek Status.`;
       
       const keyboard = new InlineKeyboard()
         .url('Cek Status', returnUrl)
         .row()
         .text('Batalkan Pesanan', `cancel_${newOrder.id}`);
 
+      const messageOptions: any = {
+        parse_mode: 'Markdown',
+        reply_markup: keyboard,
+        link_preview_options: {
+          url: qrUrl,
+          prefer_large_media: true,
+          show_above_text: false
+        }
+      };
+
       let msgId;
       if (ctx.callbackQuery.message) {
         try {
-          await ctx.editMessageText(messageText, { parse_mode: 'Markdown', reply_markup: keyboard });
+          await ctx.editMessageText(messageText, messageOptions);
           msgId = ctx.callbackQuery.message.message_id;
         } catch (e) {
-          const sent = await ctx.reply(messageText, { parse_mode: 'Markdown', reply_markup: keyboard });
+          const sent = await ctx.reply(messageText, messageOptions);
           msgId = sent.message_id;
         }
       } else {
-        const sent = await ctx.reply(messageText, { parse_mode: 'Markdown', reply_markup: keyboard });
+        const sent = await ctx.reply(messageText, messageOptions);
         msgId = sent.message_id;
       }
       
