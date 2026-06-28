@@ -994,12 +994,19 @@ bot.callbackQuery(/^cancel_(.+)$/, async (ctx) => {
       }
     }
 
-    // Edit the message to show it was cancelled
+    // Update the message to show it was cancelled
     if (ctx.callbackQuery.message) {
       const btnBackCat = await getButtonLabel('btn_back_catalog', '⬅️ Kembali ke Katalog');
       const keyboard = new InlineKeyboard().text(btnBackCat, 'katalog_main');
       const tpl = await getTemplate('order_cancelled');
-      await ctx.editMessageText(tpl || '❌ *Pesanan Dibatalkan*\n\nTerima kasih, pesanan Anda telah berhasil dibatalkan dan stok telah dikembalikan.', { parse_mode: tpl ? 'HTML' : 'Markdown', reply_markup: keyboard }).catch(console.error);
+      
+      try {
+        await ctx.deleteMessage();
+      } catch (e) {
+        // Ignore deletion errors
+      }
+      
+      await ctx.reply(tpl || '❌ *Pesanan Dibatalkan*\n\nTerima kasih, pesanan Anda telah berhasil dibatalkan dan stok telah dikembalikan.', { parse_mode: tpl ? 'HTML' : 'Markdown', reply_markup: keyboard }).catch(console.error);
     }
 
     ctx.answerCallbackQuery({ text: 'Pesanan berhasil dibatalkan.' });
