@@ -795,29 +795,21 @@ bot.callbackQuery(/^buy_(.+)$/, async (ctx) => {
         .row()
         .text('Batalkan Pesanan', `cancel_${newOrder.id}`);
 
-      const messageOptions: any = {
-        parse_mode: 'Markdown',
-        reply_markup: keyboard,
-        link_preview_options: {
-          url: qrUrl,
-          prefer_large_media: true,
-          show_above_text: false
-        }
-      };
-
       let msgId;
-      if (ctx.callbackQuery.message) {
+      if (ctx.callbackQuery?.message) {
         try {
-          await ctx.editMessageText(messageText, messageOptions);
-          msgId = ctx.callbackQuery.message.message_id;
+          await ctx.deleteMessage();
         } catch (e) {
-          const sent = await ctx.reply(messageText, messageOptions);
-          msgId = sent.message_id;
+          // ignore
         }
-      } else {
-        const sent = await ctx.reply(messageText, messageOptions);
-        msgId = sent.message_id;
       }
+      
+      const sent = await ctx.replyWithPhoto(qrUrl, {
+        caption: messageText,
+        parse_mode: 'Markdown',
+        reply_markup: keyboard
+      });
+      msgId = sent.message_id;
       
       await supabaseAdmin.from('orders').update({ platform_source: `telegram:${msgId}` }).eq('id', newOrder.id);
       
